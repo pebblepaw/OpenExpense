@@ -1,19 +1,19 @@
-import { relationshipAccount } from './config.mjs';
+import { relationshipAccount, settings, categoryName, closingBalanceFor, accountNameFor } from './config.mjs';
 
 const EXPENSE_ROLES = new Set(['expense', 'transfer_to_person', 'paylah_pending_wallet', 'relationship_transfer']);
 const OFFSET_ROLES = new Set(['peer_receipt', 'refund']);
 
-export function buildBalanceSeries({ transactions = [], accountMetadata = [], coverage = {}, latestDate, startDate = '2026-01-01' } = {}) {
+export function buildBalanceSeries({ transactions = [], accountMetadata = [], coverage = {}, latestDate, startDate = settings.analysis.start_date } = {}) {
   if (!latestDate) return [];
   const accounts = new Map();
   const datedAccounts = accountMetadata
     .filter((account) => account.source === 'dbs-csv' && account.accountId !== relationshipAccount.accountId && account.currentBalance !== null && account.currentBalance !== undefined && Number.isFinite(Number(account.currentBalance)))
     .sort((left, right) => String(right.statementDate ?? '').localeCompare(String(left.statementDate ?? '')));
   for (const account of datedAccounts) if (!accounts.has(account.accountId)) accounts.set(account.accountId, {
-    balanceSgd: Number(account.currentBalance), anchorDate: account.statementDate ?? latestDate, assumed: false
+    balanceSgd: closingBalanceFor(account) ?? Number(account.currentBalance), anchorDate: account.statementDate ?? latestDate, assumed: closingBalanceFor(account) !== null
   });
   for (const account of accountMetadata.filter((entry) => ['paylah-pdf', 'revolut-csv'].includes(entry.source))) {
-    if (!accounts.has(account.accountId)) accounts.set(account.accountId, { balanceSgd: 0, anchorDate: latestDate, assumed: true });
+    if (!accounts.has(account.accountId)) accounts.set(account.accountId, { balanceSgd: closingBalanceFor(account) ?? Number(account.currentBalance ?? 0), anchorDate: latestDate, assumed: closingBalanceFor(account) !== null });
   }
   if (accounts.size === 0) return [];
 
@@ -47,7 +47,7 @@ export function buildBalanceSeries({ transactions = [], accountMetadata = [], co
   return series;
 }
 
-export function deriveDbsBaseline({ transactions, accountMetadata, coverage = { gaps: [] } }, cutoffDate = '2026-07-31') {
+export function deriveDbsBaseline({ transactions, accountMetadata, coverage = { gaps: [] } }, cutoffDate = settings.analysis.baseline_date) {
   const seen = new Set();
   const accounts = accountMetadata
     .filter((account) => account.source === 'dbs-csv' && account.currentBalance != null && Number.isFinite(Number(account.currentBalance)) && account.accountId !== relationshipAccount.accountId)
@@ -60,24 +60,25 @@ export function deriveDbsBaseline({ transactions, accountMetadata, coverage = { 
       const estimated = (coverage.gaps ?? []).some((gap) => gap.accountId === account.accountId && gap.endDate > cutoffDate);
       return {
         accountId: account.accountId,
-        accountName: account.accountName,
-        currentBalanceSgd: Number(account.currentBalance),
+        accountName: accountNameFor(account),
+        currentBalanceSgd: closingBalanceFor(account) ?? Number(account.currentBalance),
         postCutoffMovementSgd,
-        baselineBalanceSgd: Number(account.currentBalance) - postCutoffMovementSgd,
+        baselineBalanceSgd: (closingBalanceFor(account) ?? Number(account.currentBalance)) - postCutoffMovementSgd,
         estimated
       };
     });
+  const configuredWalletBalances = new Map(accountMetadata.filter(account => account.accountId !== relationshipAccount.accountId && account.source !== 'dbs-csv' && closingBalanceFor(account) !== null).map(account => [account.accountId,closingBalanceFor(account)]));
   return {
     cutoffDate,
     accounts,
-    balanceSgd: accounts.reduce((sum, account) => sum + account.baselineBalanceSgd, 0),
+    balanceSgd: accounts.reduce((sum, account) => sum + account.baselineBalanceSgd, 0) + [...configuredWalletBalances.values()].reduce((sum,balance) => sum + balance,0),
     estimated: accounts.some((account) => account.estimated)
   };
 }
 
 export function buildDashboardMetrics(transactions, {
   baselineBalanceSgd = 0,
-  baselineDate = '2026-07-31',
+  baselineDate = settings.analysis.baseline_date,
   recurringIncomeSgd,
   recurringSpendSgd,
   oneOffAdjustments = [],
@@ -95,7 +96,7 @@ export function buildDashboardMetrics(transactions, {
       const spend = Math.abs(amount);
       bucket.grossSpendSgd += spend;
       bucket.netPersonalSpendSgd += spend;
-      const category = transaction.category ?? 'Uncategorized';
+      const category = transaction.category ?? categoryName('uncategorized');
       bucket.categories[category] = (bucket.categories[category] ?? 0) + spend;
     }
     if (OFFSET_ROLES.has(transaction.role)) {
@@ -136,12 +137,14 @@ export function buildDashboardMetrics(transactions, {
     if (balance) metricRows.push({ ...metricRow(month, previous, 'End balance', null, balance.balanceSgd, balanceByMonth.get(previous?.month)?.balanceSgd), notes: balance.estimated ? `Estimated due to source gaps: ${balance.estimatedAccounts.join(', ')}` : balance.partial ? `Partial month through ${balance.asOfDate}` : 'Combined account balance; wallet closing balances assumed S$0.' });
     return [...metricRows, ...categoryNames.map((category) => metricRow(month, previous, 'Category spend', category, month.categories[category] ?? 0, previous?.categories[category] ?? 0))];
   });
-  const completedThrough = forecastFromDate ? previousMonth(forecastFromDate.slice(0, 7)) : '2026-07';
-  const jobMonths = months.filter(({ month }) => month >= '2026-05' && month <= completedThrough).slice(-3);
+  const completedThrough = forecastFromDate ? previousMonth(forecastFromDate.slice(0, 7)) : baselineDate.slice(0,7);
+  const jobMonths = months.filter(({ month }) => month >= (settings.forecast.income_average_start_month ?? settings.analysis.start_date.slice(0,7)) && month <= completedThrough).slice(-settings.forecast.recent_months);
   const average = (field, fallback = 0) => jobMonths.length ? jobMonths.reduce((sum, row) => sum + row[field], 0) / jobMonths.length : fallback;
   const projectedIncome = recurringIncomeSgd ?? average('netIncomeSgd');
   const projectedSpend = recurringSpendSgd ?? average('netPersonalSpendSgd');
-  const projectedMonths = ['2026-08', '2026-09', '2026-10', '2026-11', '2026-12'].filter((month) => !forecastFromDate || month >= forecastFromDate.slice(0, 7));
+  const projectedMonths = [];
+  const target = settings.forecast.target_month ?? `${(forecastFromDate ?? baselineDate).slice(0,4)}-12`;
+  for (let month = forecastFromDate?.slice(0,7) ?? nextMonth(baselineDate.slice(0,7)); month <= target; month = nextMonth(month)) projectedMonths.push(month);
   let runningBalance = Number(baselineBalanceSgd);
   const forecast = projectedMonths.map((month) => {
     const partial = forecastFromDate && month === forecastFromDate.slice(0, 7);

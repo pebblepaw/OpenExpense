@@ -21,7 +21,7 @@ export function CalendarView({ rows, scope, month, monthKeys, categories, onMont
       const amount = Math.abs(row.amount);
       entry.amount += amount;
       entry.rows.push(row);
-      const name = row.category || "Uncategorized";
+      const name = row.category;
       const bucket = entry.categories.find(item => item.name === name);
       if (bucket) bucket.amount += amount;
       else entry.categories.push({ name, amount });
@@ -36,7 +36,7 @@ export function CalendarView({ rows, scope, month, monthKeys, categories, onMont
       const matching = entry.rows.filter(row => row.category === category);
       if (!matching.length) continue;
       const rowsByCategory = new Map<string, number>();
-      for (const row of matching) rowsByCategory.set(row.category || "Uncategorized", (rowsByCategory.get(row.category || "Uncategorized") ?? 0) + Math.abs(row.amount));
+      for (const row of matching) rowsByCategory.set(row.category, (rowsByCategory.get(row.category) ?? 0) + Math.abs(row.amount));
       result.set(date, { amount: matching.reduce((sum, row) => sum + Math.abs(row.amount), 0), categories: [...rowsByCategory].map(([name, amount]) => ({ name, amount })), rows: matching });
     }
     return result;

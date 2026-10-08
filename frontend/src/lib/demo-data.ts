@@ -1,6 +1,6 @@
-import settings from '../../../config/demo.json';
-import categories from '../../../config/categories.json';
-import { categorySubcategories, resolveAutomaticSubcategory } from '../../../src/subcategories.mjs';
+import defaults from '../../../config/defaults.yaml';
+import { canonicalCategoryFrom, subcategoriesFrom, publicSettings } from '../../../src/settings.mjs';
+import { resolveAutomaticSubcategory } from '../../../src/subcategories.mjs';
 import type { ApiData, TransactionPatch } from './finance-data';
 
 export const DEMO_STORAGE_KEY = 'openexpense-synthetic-edits-v1';
@@ -9,14 +9,17 @@ const round = (value: number) => Math.round(value * 100) / 100;
 const expenseRoles = new Set(['expense', 'transfer_to_person', 'relationship_transfer', 'paylah_pending_wallet']);
 
 // Created from fictional parameters, never from a bank export or /api/data.
-function seedTransactions() {
+function seedTransactions(config = defaults) {
+  const settings = config.demo;
   let randomSeed = settings.seed;
   const random = () => { randomSeed = (1664525 * randomSeed + 1013904223) >>> 0; return randomSeed / 4294967296; };
   const rows: any[] = [];
-  const [savings, spending, revolut, paylah, joint] = settings.accounts;
+  const [savings, spending, revolut, paylah, joint] = ['savings','spending','revolut','paylah','relationship'].map(kind => settings.accounts.find((account: any) => account.kind === kind)!);
   function add(account: typeof savings, date: string, name: string, amount: number, role: string, category: string | null = null, extra: Record<string, unknown> = {}) {
+    if (date > settings.latestDate) return;
     const id = `demo-${String(rows.length + 1).padStart(5, '0')}`;
-    const subcategory = resolveAutomaticSubcategory({ category: category ?? '', amountSgd: amount, description: name, role });
+    category = canonicalCategoryFrom(config, category);
+    const subcategory = resolveAutomaticSubcategory({ category: category ?? '', amountSgd: amount, description: name, role, definitions: config.categories });
     rows.push({ id, fingerprint: id, source: account.source, sourceFile: `fictional-${account.accountName.toLowerCase().replaceAll(' ', '-')}.csv`, accountId: account.accountId,
       transactionDate: date, postedDate: date, descriptionRaw: name, merchantDisplayName: name, amountSgd: round(amount), balanceAfter: null,
       direction: amount > 0 ? 'inflow' : 'outflow', roleAuto: role, role, categoryAuto: category, category,
@@ -26,43 +29,45 @@ function seedTransactions() {
     const key = `${settings.year}-${String(month).padStart(2, '0')}`;
     const date = (day: number) => `${key}-${String(day).padStart(2, '0')}`;
     const lastDay = key === settings.latestDate.slice(0, 7) ? Number(settings.latestDate.slice(8)) : 28;
-    add(savings, date(1), month < 4 ? 'Parent allowance (demo)' : 'Northstar Labs salary (demo)', month < 4 ? settings.allowance : settings.salary, 'income', null, { incomeSource: month < 4 ? 'Allowance' : 'Salary' });
-    add(savings, date(2), 'Interest earned (demo)', 3.2 + random() * 4, 'income', null, { incomeSource: 'Interest' });
-    if (month % 3 === 0) add(spending, date(5), 'Weekend tutoring (demo)', 180 + month * 12, 'income', null, { incomeSource: 'Tuition' });
-    if (month === 2 || month === 7) add(savings, date(8), 'Service allowance (demo)', 110 + month * 5, 'income', null, { incomeSource: 'Service payments' });
+    add(savings, date(1), month < settings.salary_start_month ? settings.income_descriptions.allowance : settings.income_descriptions.salary, month < settings.salary_start_month ? settings.allowance : settings.salary, 'income', null, { incomeSource: month < settings.salary_start_month ? settings.income_labels.allowance : settings.income_labels.salary });
+    add(savings, date(2), settings.income_descriptions.interest, 3.2 + random() * 4, 'income', null, { incomeSource: settings.income_labels.interest });
+    if (month % 3 === 0) add(spending, date(5), settings.income_descriptions.tuition, 180 + month * 12, 'income', null, { incomeSource: settings.income_labels.tuition });
+    if (month === 2 || month === 7) add(savings, date(8), settings.income_descriptions.service, 110 + month * 5, 'income', null, { incomeSource: settings.income_labels.service });
     for (const [destination, amount] of [[spending, 800], [revolut, 180], [paylah, 120]] as const) {
       const reconciliationId = `demo-transfer-${month}-${destination.accountId}`;
       add(savings, date(3), `Own transfer to ${destination.accountName} (demo)`, -amount, 'internal_transfer', null, { reconciliationId });
       add(destination, date(3), 'Own-account top-up (demo)', amount, 'internal_transfer', null, { reconciliationId });
     }
-    add(spending, date(4), 'Transfer to Relationship Account (demo)', -settings.monthlyJointContribution, 'relationship_transfer', 'Transfer to Relationship Account');
-    add(joint, date(4), 'Alex contribution (demo)', settings.monthlyJointContribution, 'relationship_contribution', null, { contributionSource: 'Alex' });
-    add(joint, date(4), 'Sam contribution (demo)', settings.partnerJointContribution, 'relationship_contribution', null, { contributionSource: 'Partner / other' });
+    add(spending, date(4), `Transfer to ${joint.accountName} (demo)`, -settings.monthlyJointContribution, 'relationship_transfer', config.categories.relationship_transfer.name);
+    add(joint, date(4), `${settings.user_label} contribution (demo)`, settings.monthlyJointContribution, 'relationship_contribution', null, { contributionSource: settings.user_label });
+    add(joint, date(4), `${settings.partner_label} contribution (demo)`, settings.partnerJointContribution, 'relationship_contribution', null, { contributionSource: settings.other_contributor_label });
     for (let day = 1; day <= lastDay; day++) {
       const account = [spending, paylah, revolut][Math.floor(random() * 3)];
       const merchant = settings.merchants[Math.floor(random() * settings.merchants.length)];
       const amount = round(merchant.min + random() * (merchant.max - merchant.min));
-      add(account, date(day), merchant.name, -amount, 'expense', merchant.category, { subcategoryAuto: merchant.subcategory, recurring: ['Bills', 'Gym'].includes(merchant.category) });
+      add(account, date(day), merchant.name, -amount, 'expense', merchant.category, { subcategoryAuto: merchant.subcategory, recurring: Boolean(merchant.recurring) });
       if (day % 4 === 0) {
         const meal = settings.merchants[1];
         add(joint, date(day), meal.name, -(22 + random() * 35), 'expense', meal.category);
       }
-      if (day % 9 === 0) add(paylah, date(day), 'Meal repayment from Casey (demo)', 8 + random() * 15, 'peer_receipt', 'Unclassified Transfers', { recipientDisplayName: 'Casey (demo)', recipientNumber: '00000001' });
+      if (day % 9 === 0) add(paylah, date(day), `Meal repayment from ${settings.repayment_recipient.name}`, 8 + random() * 15, 'peer_receipt', config.categories.unclassified_transfer.name, { recipientDisplayName: settings.repayment_recipient.name, recipientNumber: settings.repayment_recipient.number });
     }
-    add(paylah, date(12), 'Transfer to Riley (demo)', -14 - random() * 20, 'transfer_to_person', 'Transfers to People', { recipientDisplayName: 'Riley (demo)', recipientNumber: '00000002' });
+    if (lastDay >= 12) add(paylah, date(12), `Transfer to ${settings.transfer_recipient.name}`, -14 - random() * 20, 'transfer_to_person', config.categories.people_transfer.name, { recipientDisplayName: settings.transfer_recipient.name, recipientNumber: settings.transfer_recipient.number });
   }
   return rows;
 }
 
-export function buildDemoData(edits: DemoEdits = { transactions: {}, aliases: {} }): ApiData {
-  const transactions = seedTransactions().map(row => {
+export function buildDemoData(edits: DemoEdits = { transactions: {}, aliases: {} }, config = defaults): ApiData {
+  const settings = config.demo;
+  const categories = Object.values(config.categories).map((category: any) => category.name as string);
+  const transactions = seedTransactions(config).map(row => {
     const patch = edits.transactions[row.id] ?? {};
-    const updated = { ...row, ...patch, role: patch.manualRole ?? row.roleAuto, category: patch.manualCategory ?? row.categoryAuto };
-    updated.subcategory = patch.manualSubcategory ?? resolveAutomaticSubcategory({ category: updated.category, amountSgd: updated.amountSgd, role: updated.role, suggestedSubcategory: patch.manualCategory && patch.manualCategory !== row.categoryAuto ? null : row.subcategoryAuto });
+    const updated = { ...row, ...patch, role: patch.manualRole ?? row.roleAuto, category: canonicalCategoryFrom(config,patch.manualCategory ?? row.categoryAuto) };
+    updated.subcategory = patch.manualSubcategory ?? resolveAutomaticSubcategory({ category: updated.category, amountSgd: updated.amountSgd, role: updated.role, suggestedSubcategory: patch.manualCategory && patch.manualCategory !== row.categoryAuto ? null : row.subcategoryAuto, definitions: config.categories });
     if (row.recipientNumber && edits.aliases[row.recipientNumber]) updated.recipientDisplayName = edits.aliases[row.recipientNumber];
     return updated;
   });
-  const joint = settings.accounts.find(account => account.scope === 'Shared')!;
+  const joint = settings.accounts.find((account: any) => account.kind === 'relationship')!;
   const monthKeys = [...new Set(transactions.map(row => row.transactionDate.slice(0, 7)))].sort();
   let balance = settings.openingPersonalBalance;
   let jointBalance = 0;
@@ -83,19 +88,19 @@ export function buildDemoData(edits: DemoEdits = { transactions: {}, aliases: {}
     const sharedExpenses = shared.filter(row => row.role !== 'internal_transfer' && row.amountSgd < 0);
     jointBalance = round(jointBalance + shared.reduce((sum, row) => sum + row.amountSgd, 0));
     const categoryTotals = (rows: any[]) => Object.fromEntries(categories.map(category => [category, round(rows.filter(row => row.category === category).reduce((sum, row) => sum - row.amountSgd, 0))]));
-    sharedMonths.push({ month, userFundingSgd: round(contributions.filter(row => row.contributionSource === 'Alex').reduce((sum, row) => sum + row.amountSgd, 0)), partnerFundingSgd: round(contributions.filter(row => row.contributionSource !== 'Alex').reduce((sum, row) => sum + row.amountSgd, 0)), spendSgd: round(sharedExpenses.reduce((sum, row) => sum - row.amountSgd, 0)), categories: categoryTotals(sharedExpenses) });
+    sharedMonths.push({ month, userFundingSgd: round(contributions.filter(row => row.contributionSource === settings.user_label).reduce((sum, row) => sum + row.amountSgd, 0)), partnerFundingSgd: round(contributions.filter(row => row.contributionSource !== settings.user_label).reduce((sum, row) => sum + row.amountSgd, 0)), spendSgd: round(sharedExpenses.reduce((sum, row) => sum - row.amountSgd, 0)), categories: categoryTotals(sharedExpenses) });
     return { month, netIncomeSgd, grossSpendSgd, reimbursementsSgd, netPersonalSpendSgd, savedSgd, categories: categoryTotals(outflows) };
   });
-  const recent = months.slice(-4, -1);
-  const average = (key: 'netIncomeSgd' | 'netPersonalSpendSgd') => recent.reduce((sum, row) => sum + row[key], 0) / recent.length;
+  const recent = months.filter(month => month.month < settings.latestDate.slice(0,7) && month.month >= (config.forecast.income_average_start_month ?? config.analysis.start_date.slice(0,7))).slice(-config.forecast.recent_months);
+  const average = (key: 'netIncomeSgd' | 'netPersonalSpendSgd') => recent.length ? recent.reduce((sum, row) => sum + row[key], 0) / recent.length : 0;
   const projectedYearEndBalanceSgd = round(balance + (12 - Number(settings.latestDate.slice(5, 7))) * (average('netIncomeSgd') - average('netPersonalSpendSgd')));
-  const accounts = settings.accounts.map(account => ({ ...account, scope: account.scope as 'Personal' | 'Shared', balanceSgd: account.scope === 'Shared' ? jointBalance : account.accountName === 'DBS Savings' ? round(balance * .8) : account.accountName === 'DBS Spending' ? round(balance * .2) : 0, statementDate: settings.latestDate }));
+  const accounts = settings.accounts.map((account: any) => ({ ...account, scope: account.scope as 'Personal' | 'Shared', balanceSgd: account.kind === 'relationship' ? jointBalance : round(balance * account.balance_share), statementDate: settings.latestDate }));
   return {
     metrics: { months, balanceSeries, forecast: [], baselineBalanceSgd: balance, projectedYearEndBalanceSgd },
-    baseline: { balanceSgd: balance, accounts: accounts.filter(account => account.scope === 'Personal'), estimated: false },
+    baseline: { balanceSgd: balance, accounts: accounts.filter((account: any) => account.scope === 'Personal'), estimated: false },
     accounts, transactions, categories,
-    subcategories: categorySubcategories,
-    relationship: { accountId: joint.accountId, accountName: joint.accountName, userLabel: 'Alex', partnerLabel: 'Sam', availableBalanceSgd: jointBalance, ledgerBalanceSgd: jointBalance, months: sharedMonths, statementDate: settings.latestDate },
+    settings: publicSettings(config), subcategories: subcategoriesFrom(config),
+    relationship: { accountId: joint.accountId, accountName: joint.accountName, userLabel: settings.user_label, partnerLabel: settings.partner_label, availableBalanceSgd: jointBalance, ledgerBalanceSgd: jointBalance, months: sharedMonths, statementDate: settings.latestDate },
     coverage: { startDate: `${settings.year}-01-01`, latestDate: settings.latestDate, intervals: [], gaps: [] },
     sourceGaps: [], lastUpdatedAt: `${settings.latestDate}T12:00:00Z`
   };

@@ -2,7 +2,9 @@
   "name": "openexpense",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.12.0" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "start": "node scripts/money.mjs",
     "refresh": "node src/refresh.mjs",
@@ -11,7 +13,18 @@
     "test": "node --test test/*.test.mjs",
     "test:demo": "node --test test/demo.e2e.mjs"
   },
-  "dependencies": { "exceljs": "4.4.0", "jszip": "^3.10.1" },
-  "overrides": { "exceljs": { "uuid": "^11.1.1" } },
-  "devDependencies": { "playwright": "^1.56.0", "esbuild": "^0.25.0" }
+  "dependencies": {
+    "exceljs": "4.4.0",
+    "jszip": "^3.10.1",
+    "yaml": "^2.9.1"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "playwright": "^1.56.0"
+  }
 }

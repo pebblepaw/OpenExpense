@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { classifyTransactions } from '../src/classify.mjs';
-import { categorySubcategories, resolveAutomaticSubcategory } from '../src/subcategories.mjs';
+import { categorySubcategories, settings } from '../src/config.mjs';
+import { resolveAutomaticSubcategory as resolve } from '../src/subcategories.mjs';
+const resolveAutomaticSubcategory = options => resolve({...options,definitions:settings.categories});
 
 const tx = (id, amountSgd, overrides = {}) => ({
   id, descriptionRaw: 'Some merchant', amountSgd, direction: amountSgd < 0 ? 'outflow' : 'inflow',

@@ -36,12 +36,12 @@ Open [localhost:4174](http://127.0.0.1:4174). Or use `mise run demo` if [mise](h
 ## Use your own statements locally
 
 1. Install [Poppler](https://poppler.freedesktop.org/) for PDF parsing: `brew install poppler` on macOS, or `sudo apt install poppler-utils` on Ubuntu.
-2. Copy `config/config.yaml.example` to `config/config.yaml`. Set your owner-name variants, income sources, Revolut reference and optional joint-account details.
+2. Copy `config/defaults.yaml` to `config/config.yaml`. Set your owner-name variants, income sources, account display names, Revolut reference and optional joint-account details. The ignored local file has every editable setting in one place.
 3. Create the source folders and add exports:
 
 ```bash
 mkdir -p 'POSB:DBS Bank Statement' PayLah Revolut
-cp config/config.yaml.example config/config.yaml
+cp config/defaults.yaml config/config.yaml
 ```
 
 - **DBS/POSB:** transaction-history CSVs named `transaction_history*.csv`; PDFs supplement uncovered periods.
@@ -59,14 +59,16 @@ Add later exports and click **Refresh statements** in Transactions or Accounts &
 
 ## Customize the workflow
 
-- `config/config.yaml`: private account details, source folders and income recognition.
-- `config/income_sources.json` + private YAML `income_sources`: income display groups.
-- `config/categories.json`: canonical categories.
+- `config/config.yaml`: all private/local settings—names, account aliases, categories, subcategories, amount bands, colours, income groups, source paths, transfer matching, balance assumptions and forecasting.
+- `config/defaults.yaml`: the safe public defaults and fictional `demo` settings. Public frontend builds read **only** this file, never your private YAML.
 - `config/merchant_rules.csv` and `config/merchant_directory.csv`: reusable classifications.
-- `config/demo.json`: fictional demo parameters and merchants.
 - `skills/update-personal-finances/SKILL.md`: reusable statement-update instructions for a coding agent.
 
 Raw exports and real configuration are ignored by Git. Manual workbook overrides win over automatic tags and remain keyed by stable transaction IDs. Ambiguous merchants are not silently guessed.
+
+After editing local YAML, click **Refresh statements**: the API reloads settings, rebuilds the ledger and updates the charts/dropdowns without rebuilding the frontend. Keep category IDs and aliases stable when changing names. To add a category, give it a new ID, name, aliases, colour and subcategory list. Amount bands are inclusive lower bounds, in descending order ending at zero. A small override-only template is also available in `config/config.yaml.example`.
+
+Statement parsers currently support **SGD**, not currency conversion. Locale controls display formatting only. Changes to public demo defaults require a new demo build/deployment.
 
 ## GitHub Pages
 

@@ -8,8 +8,7 @@ import { classifyTransactions } from './classify.mjs';
 import { reconcileTransactions } from './reconcile.mjs';
 import { buildMerchantDirectory } from './merchant-directory.mjs';
 import { applyRelationshipScope, buildRelationshipMetrics } from './relationship.mjs';
-import { categories, relationshipAccount } from './config.mjs';
-import { categorySubcategories } from './subcategories.mjs';
+import { categories, relationshipAccount, categorySubcategories, settings, reloadConfig, dashboardSettings, accountNameFor, closingBalanceFor } from './config.mjs';
 import { recipientNumberFor, withRecipientDisplay } from './recipients.mjs';
 import { buildProvisionalPaylahRow } from './provisional-paylah.mjs';
 import { incomeSourceFor } from './income-sources.mjs';
@@ -20,6 +19,7 @@ let report;
 let mutations = Promise.resolve();
 
 async function load() {
+  reloadConfig();
   report = await runRefresh();
   return report;
 }
@@ -32,12 +32,12 @@ function payload() {
   const personalTransactions = transactions.filter((transaction) => transaction.accountId !== relationshipAccount.accountId);
   const accountNames = new Map(report.ledger.accountMetadata
     .filter((account) => account.accountName)
-    .map((account) => [account.accountId, account.accountName]));
+    .map((account) => [account.accountId, accountNameFor(account)]));
   const baseline = deriveDbsBaseline({
     transactions: personalTransactions,
     accountMetadata: report.ledger.accountMetadata,
     coverage: report.coverage
-  }, report.coverage.latestDate ?? '2026-07-31');
+  }, report.coverage.latestDate ?? settings.analysis.baseline_date);
   const balanceSeries = buildBalanceSeries({
     transactions: personalTransactions,
     accountMetadata: report.ledger.accountMetadata,
@@ -48,12 +48,13 @@ function payload() {
   const metadata = [...report.ledger.accountMetadata].sort((a, b) => String(b.statementDate ?? '').localeCompare(String(a.statementDate ?? '')));
   for (const account of metadata) {
     if (accountsById.has(account.accountId)) continue;
-    const assumed = ['paylah-pdf', 'revolut-csv'].includes(account.source);
+    const closingBalance = closingBalanceFor(account);
+    const assumed = closingBalance !== null;
     accountsById.set(account.accountId, {
       accountId: account.accountId,
       accountName: accountNames.get(account.accountId) ?? account.accountName ?? account.accountId,
       scope: account.accountId === relationshipAccount.accountId ? 'Shared' : 'Personal',
-      balanceSgd: assumed ? 0 : account.currentBalance,
+      balanceSgd: assumed ? closingBalance : account.currentBalance,
       ledgerBalanceSgd: account.ledgerBalance ?? null,
       statementDate: account.statementDate ?? (assumed ? report.coverage.latestDate : null),
       assumed
@@ -63,6 +64,7 @@ function payload() {
     ...(categorySubcategories[category] ?? []), ...transactions.filter(row => row.category === category && row.subcategory).map(row => row.subcategory)
   ])]]));
   return {
+    settings: dashboardSettings(),
     metrics: buildDashboardMetrics(personalTransactions, {
       baselineBalanceSgd: baseline.balanceSgd,
       baselineDate: baseline.cutoffDate,

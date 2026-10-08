@@ -4,6 +4,7 @@ import { access, readFile } from 'node:fs/promises';
 import { extname } from 'node:path';
 import { promisify } from 'node:util';
 import { parseCsv, normaliseHeader } from './csv.mjs';
+import { settings } from './config.mjs';
 
 const execFileAsync = promisify(execFile);
 const manualFields = ['manualCategory', 'manualSubcategory', 'manualRole', 'reviewNote'];
@@ -298,7 +299,7 @@ export function describeCoverage(transactions) {
     .map(([source, dates]) => `${source}: ${dates.sort()[0]} to ${dates.sort().at(-1)}`);
 }
 
-export function detectCoverageGaps(intervals, { startDate = '2026-01-01', latestDate } = {}) {
+export function detectCoverageGaps(intervals, { startDate = settings.analysis.start_date, latestDate } = {}) {
   const byAccount = new Map();
   for (const interval of intervals) {
     if (!interval.startDate || !interval.endDate) continue;

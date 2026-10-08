@@ -8,18 +8,34 @@ import { tmpdir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { build } from 'esbuild';
+import { parse } from 'yaml';
 
 test('synthetic Pages site works under a project path, never calls an API, and persists only demo edits', async context => {
   const temporary = await mkdtemp(join(tmpdir(),'openexpense-demo-test-'));
   context.after(() => rm(temporary,{recursive:true,force:true}));
   const fixture = join(temporary,'demo.mjs');
-  await build({entryPoints:['frontend/src/lib/demo-data.ts'],bundle:true,platform:'node',format:'esm',outfile:fixture});
+  await build({entryPoints:['frontend/src/lib/demo-data.ts'],bundle:true,platform:'node',format:'esm',outfile:fixture,plugins:[{name:'public-yaml',setup(builder){builder.onLoad({filter:/defaults\.yaml$/},async args=>({contents:`export default ${JSON.stringify(parse(await readFile(args.path,'utf8')))}`,loader:'js'}));}}]});
   const { buildDemoData } = await import(pathToFileURL(fixture));
   const data = buildDemoData();
   assert.deepEqual(buildDemoData(),data);
   assert.ok(data.transactions.length > 350);
   assert.ok(data.accounts.every(account => account.accountId.startsWith('DEMO-')));
   assert.ok(data.transactions.every(row => row.id.startsWith('demo-')));
+  const custom = parse(await readFile('config/defaults.yaml','utf8'));
+  custom.app.name = 'YAML-configured dashboard';
+  custom.categories.food.name = 'Meals';
+  custom.categories.food.amount_bands = [{min:40,name:'Large meal'},{min:0,name:'Other meal'}];
+  custom.demo.accounts.find(account=>account.kind==='savings').accountName = 'Rainy day fund';
+  custom.demo.accounts.find(account=>account.kind==='relationship').accountName = 'Our fund';
+  custom.demo.user_label = 'Demo User';
+  const customized = buildDemoData(undefined,custom);
+  assert.equal(customized.settings.app.name,'YAML-configured dashboard');
+  assert.equal(customized.relationship.accountName,'Our fund');
+  assert.ok(customized.accounts.some(account=>account.accountName==='Rainy day fund'));
+  assert.equal(customized.baseline.balanceSgd,data.baseline.balanceSgd,'renaming accounts must not affect balances');
+  assert.deepEqual(customized.subcategories.Meals,['Large meal','Other meal']);
+  for (const row of customized.transactions.filter(row=>row.category==='Meals')) assert.equal(row.subcategory,Math.abs(row.amountSgd)>=40?'Large meal':'Other meal');
+  assert.ok(customized.relationship.months.every(month=>month.userFundingSgd>0));
   const round=value => Math.round(value*100)/100;
   for (const month of data.metrics.months) {
     assert.equal(round(month.grossSpendSgd-month.reimbursementsSgd),month.netPersonalSpendSgd);

@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { paths as configuredPaths } from './config.mjs';
+import { paths as configuredPaths, settings, accountNameFor } from './config.mjs';
 import { parseDbsCsv } from './ingest/dbs-csv.mjs';
 import { parseDbsPdf } from './ingest/dbs-pdf.mjs';
 import { parsePayLahPdf } from './ingest/paylah-pdf.mjs';
@@ -47,18 +47,26 @@ export async function runRefresh({
     readWorkbookRecipientAliases(workbookPath)
   ]);
   const merchantDirectory = new Map([...configuredMerchantDirectory, ...workbookMerchantDirectory]);
-  const imports = [...dbsCsvImports, ...dbsPdfFallback, ...paylahImports, ...revolutImports];
+  const imports = [...dbsCsvImports, ...dbsPdfFallback, ...paylahImports, ...revolutImports].map(result => ({...result,accountMetadata:(result.accountMetadata ?? []).map(account => ({...account,accountName:accountNameFor(account)}))}));
   const baseLedger = buildLedger(imports, { overrides });
   const intervals = imports.flatMap((result) => result.coverageIntervals ?? []);
-  const latestDate = intervals.reduce((latest, interval) => !latest || interval.endDate > latest ? interval.endDate : latest, null);
+  const importedLatest = intervals.reduce((latest, interval) => !latest || interval.endDate > latest ? interval.endDate : latest, null);
+  const latestDate = importedLatest && settings.analysis.end_date && importedLatest > settings.analysis.end_date ? settings.analysis.end_date : importedLatest;
+  if (settings.analysis.end_date) baseLedger.accountMetadata = baseLedger.accountMetadata.map(account => {
+    if (!account.statementDate || account.statementDate <= settings.analysis.end_date || account.currentBalance == null) return account;
+    const movement = baseLedger.transactions.filter(row => row.accountId === account.accountId && row.transactionDate > settings.analysis.end_date && row.transactionDate <= account.statementDate).reduce((sum,row) => sum + Number(row.amountSgd ?? 0),0);
+    return {...account,statementDate:settings.analysis.end_date,currentBalance:account.currentBalance-movement,ledgerBalance:account.ledgerBalance == null ? null : account.ledgerBalance-movement};
+  });
   const coverage = {
-    startDate: '2026-01-01',
+    startDate: settings.analysis.start_date,
     latestDate,
     intervals,
-    gaps: latestDate ? detectCoverageGaps(intervals, { startDate: '2026-01-01', latestDate }).filter((gap) =>
-      gap.accountId !== relationshipAccount.accountId || gap.endDate >= '2026-08-29') : []
+    gaps: latestDate ? detectCoverageGaps(intervals, { startDate: settings.analysis.start_date, latestDate }).flatMap(gap => {
+      if (gap.accountId !== relationshipAccount.accountId || !relationshipAccount.startDate) return [gap];
+      return gap.endDate < relationshipAccount.startDate ? [] : [{...gap,startDate:gap.startDate < relationshipAccount.startDate ? relationshipAccount.startDate : gap.startDate}];
+    }) : []
   };
-  const analysisTransactions = baseLedger.transactions.filter((transaction) => String(transaction.transactionDate ?? '') >= '2026-01-01');
+  const analysisTransactions = baseLedger.transactions.filter(transaction => String(transaction.transactionDate ?? '') >= settings.analysis.start_date && (!settings.analysis.end_date || transaction.transactionDate <= settings.analysis.end_date));
   const classified = await classifyTransactions(analysisTransactions, { directory: merchantDirectory });
   const reconciliation = reconcileTransactions(classified);
   const scopedTransactions = applyRelationshipScope(reconciliation.transactions);

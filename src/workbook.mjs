@@ -3,9 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { basename, resolve } from 'node:path';
 import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
-import { categories, paths, relationshipAccount } from './config.mjs';
+import { categories, paths, relationshipAccount, categorySubcategories, categoryName, canonicalCategory } from './config.mjs';
 import { buildBalanceSeries, buildDashboardMetrics } from './metrics.mjs';
-import { categorySubcategories } from './subcategories.mjs';
 
 const manualFields = ['manualCategory', 'manualSubcategory', 'manualRole', 'reviewNote'];
 const transactionHeaders = [
@@ -138,7 +137,7 @@ export async function readWorkbookMerchantDirectory(path = resolve(paths.workboo
   if (!indexes.has('merchantKey')) return new Map();
   return new Map(rows.map(row => {
     const merchantKey=emptyToNull(row[indexes.get('merchantKey')]), category=migrateCategory(emptyToNull(row[indexes.get('category')]));
-    if (!merchantKey || !category || category==='Uncategorized' || !categories.includes(category)) return null;
+    if (!merchantKey || !category || category===categoryName('uncategorized') || !categories.includes(category)) return null;
     return [merchantKey,{ category,...Object.fromEntries(['displayName','subcategory','confidence','sourceUrl','notes'].map(field => [field,emptyToNull(row[indexes.get(field)])])) }];
   }).filter(Boolean));
 }
@@ -170,5 +169,5 @@ const dateValue=value => value ? new Date(String(value).slice(0,10)+'T00:00:00Z'
 const numberOrNull=value => value!==null && value!==undefined && value!=='' && Number.isFinite(Number(value)) ? Number(value) : null;
 const displaySourceFile=value => value ? basename(String(value)) : null;
 const emptyToNull=value => value===undefined || value===null || String(value).trim()==='' ? null : String(value);
-const migrateCategory=value => value==='Transfer to Friends/Others' ? 'Transfers to People' : value;
+const migrateCategory=canonicalCategory;
 async function exists(path) { try { await access(path);return true; } catch { return false; } }

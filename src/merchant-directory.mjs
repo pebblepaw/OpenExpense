@@ -1,6 +1,6 @@
 import { normaliseDescription } from './ledger.mjs';
 import { readFile } from 'node:fs/promises';
-import { categories, paths } from './config.mjs';
+import { categories, paths, categoryName, canonicalCategory } from './config.mjs';
 import { parseCsv } from './csv.mjs';
 
 export async function loadMerchantDirectory(path = paths.merchantDirectory) {
@@ -10,7 +10,7 @@ export async function loadMerchantDirectory(path = paths.merchantDirectory) {
     return new Map(rows
       .map((row) => {
         const merchantKey = String(row[indexes.get('merchantKey')] ?? '').trim();
-        const category = String(row[indexes.get('category')] ?? '').trim();
+        const category = canonicalCategory(String(row[indexes.get('category')] ?? '').trim());
         if (!merchantKey || !categories.includes(category)) return null;
         return [merchantKey, {
           displayName: valueAt(row, indexes, 'displayName'),
@@ -59,14 +59,14 @@ export function buildMerchantDirectory(transactions, researched = new Map()) {
     };
     entry.transactionCount += 1;
     entry.totalSpendSgd += Math.abs(Number(transaction.amountSgd));
-    if (transaction.categoryAuto && transaction.categoryAuto !== 'Uncategorized') entry.observedCategories.add(transaction.categoryAuto);
+    if (transaction.categoryAuto && transaction.categoryAuto !== categoryName('uncategorized')) entry.observedCategories.add(transaction.categoryAuto);
     grouped.set(merchantKey, entry);
   }
   return [...grouped.values()]
     .map((entry) => {
     const research = merchantDirectoryEntryFor(entry.merchantKey, researched) ?? {};
       const observedCategory = entry.observedCategories.size === 1 ? [...entry.observedCategories][0] : null;
-      const category = research.category ?? observedCategory ?? 'Uncategorized';
+      const category = canonicalCategory(research.category) ?? observedCategory ?? categoryName('uncategorized');
       return {
         merchantKey: entry.merchantKey,
         displayName: research.displayName ?? entry.merchantKey,
@@ -75,7 +75,7 @@ export function buildMerchantDirectory(transactions, researched = new Map()) {
         confidence: research.confidence ?? null,
         sourceUrl: research.sourceUrl ?? null,
         notes: research.notes ?? null,
-        reviewStatus: category === 'Uncategorized' ? 'needs_review' : 'reviewed',
+        reviewStatus: category === categoryName('uncategorized') ? 'needs_review' : 'reviewed',
         transactionCount: entry.transactionCount,
         totalSpendSgd: Number(entry.totalSpendSgd.toFixed(2)),
         exampleDescription: entry.exampleDescription

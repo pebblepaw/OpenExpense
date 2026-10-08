@@ -1,5 +1,6 @@
-# Personal Finance Dashboard Configuration Example
-# Copy this file to config/config.yaml and replace the placeholder values.
+# OpenExpense private settings example (small overrides).
+# For ALL editable options in one file, copy defaults.yaml to config.yaml instead.
+# Local settings merge with defaults.yaml; lists replace defaults, nested maps merge.
 # NEVER commit your real config/config.yaml to version control.
 
 # Your name(s) or patterns that appear on incoming transfers/top-ups to your own accounts
@@ -19,7 +20,7 @@ known_income_patterns:
   - "SAF"
 
 # Optional Categories > Income display groups. Does not change income recognition.
-# Generic salary, tuition, army and interest rules live in income_sources.json.
+# Generic salary, tuition, army and interest rules live in defaults.yaml.
 income_sources:
   Allowance:
     - "ALLOWANCE_SOURCE"
@@ -43,3 +44,18 @@ sources:
   revolut: "./Revolut"
 
 workbook: "./master_transactions.xlsx"
+
+# Optional account labels. IDs stay exactly as printed in your bank exports.
+accounts:
+  "PERSONAL_ACCOUNT_1_ID":
+    name: "Rainy day savings"
+
+# Stable IDs drive classification; changing names does not change accounting roles.
+categories:
+  food:
+    name: "Food & Dining"
+    color: "#ff6600"
+    amount_bands:
+      - { min: 50, name: "Really big meals ($50+)" }
+      - { min: 20, name: "Big meals ($20–$49.99)" }
+      - { min: 0, name: "Other meals (<$20)" }

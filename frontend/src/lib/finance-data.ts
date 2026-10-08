@@ -1,4 +1,6 @@
 import { getDemoData, resetDemoData, saveDemoAlias, saveDemoTransaction } from './demo-data';
+import defaults from '../../../config/defaults.yaml';
+import { publicSettings } from '../../../src/settings.mjs';
 
 export const DEMO_ONLY = import.meta.env.VITE_DATA_MODE === 'demo';
 export type DataMode = 'live' | 'demo';
@@ -30,6 +32,7 @@ export type Monthly = {
 };
 export type CategoryInfo = { name: string; color: string; value: number; previous: number };
 export type ApiData = {
+  settings: DashboardSettings;
   metrics: { months: any[]; balanceSeries: any[]; forecast: any[]; projectedYearEndBalanceSgd: number; baselineBalanceSgd: number };
   transactions: any[]; baseline: { balanceSgd: number; accounts: any[]; estimated: boolean };
   relationship: { accountId: string; accountName: string; userLabel: string; partnerLabel: string; availableBalanceSgd: number | null; ledgerBalanceSgd: number | null; months: any[]; statementDate: string | null };
@@ -40,13 +43,23 @@ export type ApiData = {
 };
 export type FinanceModel = { data: ApiData; transactions: Transaction[]; personal: Monthly[]; shared: Monthly[]; monthKeys: string[]; categories: CategoryInfo[] };
 
+export type DashboardSettings = {
+  app: { name: string; personal_label: string; locale: string; default_category: string; chart: { max_categories: number; minimum_category_share: number; other_label: string } };
+  analysis: { start_date: string; end_date: string | null; baseline_date: string };
+  forecast: { income_average_start_month: string | null; recent_months: number; target_month: string | null; slider_step: number; slider_max: number };
+  categories: Record<string, { name: string; color: string }>;
+  source_labels: Record<string, string>; income_fallback_label: string;
+};
+let displaySettings: DashboardSettings = publicSettings(defaults);
+export const currentDisplaySettings = () => displaySettings;
+
 const expenseRoles = new Set(['expense', 'transfer_to_person', 'paylah_pending_wallet', 'relationship_transfer']);
-const colors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-6)', 'oklch(0.7 0.2 345)', 'oklch(0.7 0.16 220)', 'oklch(0.75 0.2 55)', 'oklch(0.7 0.16 165)', 'oklch(0.65 0.16 280)', 'oklch(0.75 0.15 95)', 'oklch(0.7 0.12 15)', 'oklch(0.7 0.11 240)', 'oklch(0.65 0.06 65)', 'oklch(0.7 0.1 310)', 'var(--chart-muted)'];
-export const money = (value: number, decimals = 0) => new Intl.NumberFormat('en-SG', { style: 'currency', currency: 'SGD', maximumFractionDigits: decimals }).format(value);
-export const monthLabel = (key: string, full = false) => new Intl.DateTimeFormat('en-SG', { month: full ? 'long' : 'short', ...(full ? { year: 'numeric' as const } : {}), timeZone: 'UTC' }).format(new Date(`${key}-01T00:00:00Z`));
-export const dateLabel = (date: string) => new Intl.DateTimeFormat('en-SG', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
+export const money = (value: number, decimals = 0) => new Intl.NumberFormat(displaySettings.app.locale, { style: 'currency', currency: 'SGD', maximumFractionDigits: decimals }).format(value);
+export const monthLabel = (key: string, full = false) => new Intl.DateTimeFormat(displaySettings.app.locale, { month: full ? 'long' : 'short', ...(full ? { year: 'numeric' as const } : {}), timeZone: 'UTC' }).format(new Date(`${key}-01T00:00:00Z`));
+export const dateLabel = (date: string) => new Intl.DateTimeFormat(displaySettings.app.locale, { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`));
 
 export function adaptFinanceData(data: ApiData): FinanceModel {
+  displaySettings = data.settings;
   const names = new Map((data.accounts ?? data.baseline.accounts ?? []).map(account => [account.accountId, account.accountName]));
   names.set(data.relationship.accountId, data.relationship.accountName);
   const transactions = data.transactions.map(row => {
@@ -58,8 +71,8 @@ export function adaptFinanceData(data: ApiData): FinanceModel {
     }
     if (row.recipientNumber && !row.recipientDisplayName) merchant = `Transfer ${row.amountSgd < 0 ? 'to' : 'from'} ${row.recipientNumber}`;
     if (row.role === 'relationship_contribution') merchant = `${row.contributionSource ?? 'Other'} contribution`;
-    const account = names.get(row.accountId) || (/paylah/i.test(row.accountId) ? 'PayLah Wallet' : /revolut/i.test(row.accountId) ? 'Revolut' : row.accountId);
-    return { ...row, date: row.transactionDate, merchant, detail: row.descriptionRaw, account, scope: row.accountId === data.relationship.accountId ? 'Shared' : 'Personal', category: row.category || (type === 'Income' ? 'Income' : type === 'Internal transfer' ? 'Internal transfer' : type === 'Contribution' ? 'Contribution' : 'Uncategorized'), subcategory: row.subcategory ?? row.manualSubcategory ?? row.subcategoryAuto ?? null, amount: Number(row.amountSgd ?? 0), type, provisional: row.source === 'derived-paylah', recurring: Boolean(row.recurring), manualCategory: row.manualCategory ?? null, manualSubcategory: row.manualSubcategory ?? null, manualRole: row.manualRole ?? null, reviewNote: row.reviewNote ?? null } as Transaction;
+    const account = names.get(row.accountId) || data.settings.source_labels[row.source] || row.accountId;
+    return { ...row, date: row.transactionDate, merchant, detail: row.descriptionRaw, account, scope: row.accountId === data.relationship.accountId ? 'Shared' : 'Personal', category: row.category || (type === 'Income' ? 'Income' : type === 'Internal transfer' ? 'Internal transfer' : type === 'Contribution' ? 'Contribution' : data.settings.categories.uncategorized.name), subcategory: row.subcategory ?? row.manualSubcategory ?? row.subcategoryAuto ?? null, amount: Number(row.amountSgd ?? 0), type, provisional: row.source === 'derived-paylah', recurring: Boolean(row.recurring), manualCategory: row.manualCategory ?? null, manualSubcategory: row.manualSubcategory ?? null, manualRole: row.manualRole ?? null, reviewNote: row.reviewNote ?? null } as Transaction;
   }).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   const monthKeys = [...new Set([...data.metrics.months.map(row => row.month), ...data.metrics.balanceSeries.map(row => row.month), ...data.relationship.months.map(row => row.month)])].sort();
   const personal = monthKeys.map(month => {
@@ -73,7 +86,7 @@ export function adaptFinanceData(data: ApiData): FinanceModel {
     return { month, label: monthLabel(month), income: userFunding + partnerFunding, spending: metrics?.spendSgd ?? 0, savings: userFunding + partnerFunding - (metrics?.spendSgd ?? 0), grossSpend: metrics?.spendSgd ?? 0, receipts: 0, categories: metrics?.categories ?? {}, balance: month === data.coverage.latestDate?.slice(0, 7) ? data.relationship.availableBalanceSgd : null, partial: month === data.coverage.latestDate?.slice(0, 7), estimated: false, userFunding, partnerFunding };
   });
   const categoryNames = data.categories ?? [...new Set(transactions.filter(row => row.type === 'Expense').map(row => row.category))];
-  return { data, transactions, personal, shared, monthKeys, categories: categoryNames.map((name, i) => ({ name, color: colors[i % colors.length], value: 0, previous: 0 })) };
+  return { data, transactions, personal, shared, monthKeys, categories: categoryNames.map(name => ({ name, color: Object.values(data.settings.categories).find(category => category.name === name)?.color ?? 'var(--chart-muted)', value: 0, previous: 0 })) };
 }
 
 export function periodKeys(month: string, period: Period, keys: string[]) {
@@ -109,10 +122,11 @@ export function incomeRows(rows: Transaction[], scope: AccountScope, keys?: stri
   const role = scope === 'Personal' ? 'income' : 'relationship_contribution';
   return rows.filter(row => row.scope === scope && row.role === role && row.amount > 0 && (!keys || keys.includes(row.date.slice(0, 7))));
 }
-export const incomeSource = (row: Transaction) => row.scope === 'Shared' ? `${row.contributionSource ?? 'Other'} contributions` : row.incomeSource ?? 'Other income';
+export const incomeSource = (row: Transaction) => row.scope === 'Shared' ? `${row.contributionSource ?? 'Other'} contributions` : row.incomeSource ?? displaySettings.income_fallback_label;
 export function incomeBreakdown(model: FinanceModel, scope: AccountScope, keys: string[], priorKeys: string[] = []) {
   const rows = incomeRows(model.transactions, scope);
   const names = [...new Set(rows.map(incomeSource))].sort();
+  const colors = Object.values(model.data.settings.categories).map(category => category.color);
   return names.map((name, index) => ({
     name, color: colors[index % colors.length],
     value: rows.filter(row => incomeSource(row) === name && keys.includes(row.date.slice(0, 7))).reduce((sum, row) => sum + row.amount, 0),

@@ -3,9 +3,11 @@
 The same React dashboard has two strictly separated data providers.
 
 - **Local:** the Node server parses DBS/POSB CSV/PDF, PayLah PDF, and Revolut CSV; reconciles owned-account movements; applies reusable merchant rules and manual workbook overrides; serves `/api/data`. Browser edits save to the workbook and recalculate metrics immediately.
-- **Public demo:** `config/demo.json` generates fictional transactions from a fixed seed. It does not import server configuration or read source files. `frontend/.env.demo` locks the provider to demo mode; retags and recipient aliases live only in that browser's local storage. Reset clears those demo edits.
+- **Public demo:** the `demo` section of `config/defaults.yaml` generates fictional transactions from a fixed seed. A build-only YAML loader reads only that public file. It does not import private configuration or read source files. `frontend/.env.demo` locks the provider to demo mode; retags and recipient aliases live only in that browser's local storage. Reset clears those demo edits.
 
-`config/categories.json` is the canonical category list. Food and shopping bands use recorded SGD payments before reimbursements. Income is recognized separately; peer receipts/refunds offset net personal spend, and owned-account transfers do not count as spending or income. Relationship-account contributions count once on the personal side, while shared purchases remain on the relationship side.
+`config/config.yaml` is the single editable local settings file, merged over `config/defaults.yaml`. The standard YAML parser and schema validate it before the pipeline writes anything. Categories have stable IDs, editable names/aliases, colours, amount bands, match rules and subcategories. Aliases normalize merchant CSV and old workbook tags when a category is renamed. API payloads include only a whitelisted display/settings projection, never owner patterns, account configuration or source paths. Refresh reloads the YAML before rebuilding.
+
+Food and shopping bands use recorded SGD payments before reimbursements. Income is recognized separately; peer receipts/refunds offset net personal spend, and owned-account transfers do not count as spending or income. Relationship-account contributions count once on the personal side, while shared purchases remain on the relationship side.
 
 The master workbook retains stable transaction IDs, Transactions columns A:X, yellow manual columns Q:T, merchant and recipient directories, source coverage and monthly metrics. ExcelJS is the publicly installable workbook engine; a hidden validation sheet supplies native Excel dropdown lists. Old namespace-prefixed exports are normalized in memory on read. Writes replace the destination atomically.
 

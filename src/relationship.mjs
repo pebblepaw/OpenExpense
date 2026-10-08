@@ -1,4 +1,4 @@
-import { relationshipAccount } from './config.mjs';
+import { relationshipAccount, categoryName, canonicalCategory } from './config.mjs';
 import { normaliseDescription } from './ledger.mjs';
 
 export function applyRelationshipScope(transactions, config = relationshipAccount) {
@@ -18,7 +18,7 @@ export function applyRelationshipScope(transactions, config = relationshipAccoun
           role: transaction.manualRole || 'relationship_contribution',
           categoryAuto: null,
           category: transaction.manualCategory || null,
-          contributionSource: fundingSource ? userLabel : 'Partner / other',
+          contributionSource: fundingSource ? userLabel : config.otherContributorLabel ?? relationshipAccount.otherContributorLabel,
           reviewStatus: fundingSource || isPartnerFunding ? null : 'needs_review',
           reviewNote: fundingSource || isPartnerFunding ? null : 'Unidentified relationship-account contribution',
           netPersonalSpendOffsetSgd: 0
@@ -31,8 +31,8 @@ export function applyRelationshipScope(transactions, config = relationshipAccoun
         ...transaction,
         roleAuto: 'relationship_transfer',
         role: transaction.manualRole || 'relationship_transfer',
-        categoryAuto: 'Transfer to Relationship Account',
-        category: transaction.manualCategory || 'Transfer to Relationship Account',
+        categoryAuto: categoryName('relationship_transfer'),
+        category: transaction.manualCategory || categoryName('relationship_transfer'),
         reviewStatus: null,
         reviewNote: transaction.reviewNote === 'Unmatched owned-account transfer candidate' ? null : transaction.reviewNote,
         accountScope: 'personal'
@@ -61,7 +61,7 @@ export function buildRelationshipMetrics(transactions, accountMetadata = [], con
     } else if (amount < 0 && row.role !== 'internal_transfer') {
       const spend = Math.abs(amount);
       bucket.spendSgd += spend;
-      const category = row.category ?? 'Uncategorized';
+      const category = row.category ?? categoryName('uncategorized');
       bucket.categories[category] = (bucket.categories[category] ?? 0) + spend;
     }
     monthly.set(month, bucket);

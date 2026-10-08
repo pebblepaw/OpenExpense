@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { TransactionsView } from '@/components/finance/transactions';
 import { CalendarView } from '@/components/finance/calendar';
 import {
-  adaptFinanceData, categoryBreakdown, changePercent, dateLabel, DEMO_ONLY, expenseRows, incomeBreakdown, incomeRows, incomeSource, isDemoMode, loadFinanceData, setDataMode,
+  adaptFinanceData, categoryBreakdown, changePercent, currentDisplaySettings, dateLabel, DEMO_ONLY, expenseRows, incomeBreakdown, incomeRows, incomeSource, isDemoMode, loadFinanceData, setDataMode,
   money, monthLabel, periodKeys, previousPeriodKeys, refreshFinanceData, saveRecipientAlias, saveTransaction,
   subcategoryBreakdown, totalPeriod,
   type AccountScope, type ApiData, type CategoryInfo, type FinanceModel, type Monthly,
@@ -23,7 +23,7 @@ type View = 'Overview' | 'Calendar' | 'Categories' | 'Transactions';
 type Theme = 'dark' | 'light';
 type ChartMode = 'Flow' | 'Balance' | 'Saved' | 'Categories';
 const axisMoney = (value: number) => Math.abs(value) >= 1000 ? `${value < 0 ? '−' : ''}$${(Math.abs(value) / 1000).toFixed(1)}k` : money(value);
-const timestamp = (value: string) => new Intl.DateTimeFormat('en-SG', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Singapore' }).format(new Date(value));
+const timestamp = (value: string) => new Intl.DateTimeFormat(currentDisplaySettings().app.locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Singapore' }).format(new Date(value));
 
 export default function FinanceDashboard() {
   const [mode, setMode] = useState<DataMode>(isDemoMode() ? 'demo' : 'live');
@@ -34,7 +34,7 @@ export default function FinanceDashboard() {
   const [theme, setTheme] = useState<Theme>(() => localStorage.getItem('flow-theme') === 'light' ? 'light' : 'dark');
   const [month, setMonth] = useState('');
   const [period, setPeriod] = useState<Period>('Month');
-  const [selectedCategory, setSelectedCategory] = useState('Food & Dining');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [focus, setFocus] = useState<Transaction | null>(null);
   const [panel, setPanel] = useState<'forecast' | 'sources' | null>(null);
   const model = useMemo(() => data ? adaptFinanceData(data) : null, [data]);
@@ -44,6 +44,11 @@ export default function FinanceDashboard() {
     catch (error) { setLoadError(error instanceof Error ? error.message : 'Could not load your financial data.'); }
   };
   useEffect(() => { void reload(); }, []);
+  useEffect(() => {
+    if (!data) return;
+    document.title = data.settings.app.name;
+    setSelectedCategory(current => data.categories.includes(current) ? current : data.settings.categories[data.settings.app.default_category].name);
+  }, [data]);
   useEffect(() => { document.documentElement.classList.toggle('light', theme === 'light'); localStorage.setItem('flow-theme', theme); }, [theme]);
   const onSave = async (id: string, patch: TransactionPatch) => { setData(await saveTransaction(id, patch)); };
   const onRecipientAlias = async (number: string, name: string) => { setData(await saveRecipientAlias(number, name)); };
@@ -68,14 +73,14 @@ export default function FinanceDashboard() {
       </nav>
       <div className="flex items-center justify-end gap-2">
         <div className="scope-switch">
-          <button aria-label="Personal finances" title="Personal" onClick={() => { setFocus(null); setScope('Personal'); }} className={cn('scope-option', scope === 'Personal' && 'scope-option-active')}><WalletCards className="size-4"/><span className="hidden xl:inline">Personal</span></button>
+          <button aria-label="Personal finances" title={model.data.settings.app.personal_label} onClick={() => { setFocus(null); setScope('Personal'); }} className={cn('scope-option', scope === 'Personal' && 'scope-option-active')}><WalletCards className="size-4"/><span className="hidden xl:inline">{model.data.settings.app.personal_label}</span></button>
           <button aria-label="Relationship account" title={model.data.relationship.accountName} onClick={() => { setFocus(null); setScope('Shared'); }} className={cn('scope-option', scope === 'Shared' && 'scope-option-active')}><Users className="size-4"/><span className="hidden xl:inline">{model.data.relationship.accountName}</span></button>
         </div>
         <Button variant="icon" size="icon" aria-label="Accounts and source coverage" title="Accounts and source coverage" onClick={() => setPanel('sources')}><Info className="size-4"/></Button>
         <Button variant="icon" size="icon" aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun className="size-4"/> : <Moon className="size-4"/>}</Button>
       </div>
     </header>
-    <div className="period-row"><div className="data-mode-control"><strong>OpenExpense</strong>{DEMO_ONLY ? <span className="demo-label">Synthetic demo · browser-only edits</span> : <div className="analysis-switch" aria-label="Data source">{(['live', 'demo'] as const).map(item => <button key={item} aria-pressed={mode === item} onClick={() => void changeMode(item)} className={cn(mode === item && 'analysis-option-active')}>{item === 'live' ? 'My data' : 'Demo'}</button>)}</div>}</div><MonthRuler keys={model.monthKeys} value={month} onChange={setMonth}/><div className="sync-strip"><span>{scope === 'Personal' ? 'Personal accounts' : model.data.relationship.accountName} · {month.slice(0, 4)}{mode === 'demo' ? ' · Fictional data' : ''}</span><button onClick={() => setPanel('sources')}>Updated {timestamp(model.data.lastUpdatedAt)} · {model.data.sourceGaps.length} source gaps</button>{series.find(row => row.month === month)?.partial && <span className="partial-chip">Partial through {dateLabel(model.data.coverage.latestDate)}</span>}</div></div>
+    <div className="period-row"><div className="data-mode-control"><strong>{model.data.settings.app.name}</strong>{DEMO_ONLY ? <span className="demo-label">Synthetic demo · browser-only edits</span> : <div className="analysis-switch" aria-label="Data source">{(['live', 'demo'] as const).map(item => <button key={item} aria-pressed={mode === item} onClick={() => void changeMode(item)} className={cn(mode === item && 'analysis-option-active')}>{item === 'live' ? 'My data' : 'Demo'}</button>)}</div>}</div><MonthRuler keys={model.monthKeys} value={month} onChange={setMonth}/><div className="sync-strip"><span>{scope === 'Personal' ? model.data.settings.app.personal_label : model.data.relationship.accountName} · {month.slice(0, 4)}{mode === 'demo' ? ' · Fictional data' : ''}</span><button onClick={() => setPanel('sources')}>Updated {timestamp(model.data.lastUpdatedAt)} · {model.data.sourceGaps.length} source gaps</button>{series.find(row => row.month === month)?.partial && <span className="partial-chip">Partial through {dateLabel(model.data.coverage.latestDate)}</span>}</div></div>
     <section className="dashboard-stage">
       {view === 'Overview' && <Overview model={model} scope={scope} month={month} period={period} selectedCategory={selectedCategory} onCategories={openCategories} onTransaction={openTransaction} onForecast={() => setPanel('forecast')} onSources={() => setPanel('sources')} onMonthChange={setMonth}/>}
       {view === 'Calendar' && <CalendarView rows={model.transactions} scope={scope} month={month} monthKeys={model.monthKeys} categories={model.categories} onMonthChange={setMonth} onTransaction={openTransaction}/>}
@@ -135,7 +140,7 @@ function Overview({ model, scope, month, period, selectedCategory, onCategories,
     <section className="savings-card insight-card">
       <div className="flex items-center justify-between"><div><p className="eyebrow">{scope === 'Personal' ? `Combined balance · ${monthLabel(month)}` : 'Relationship account balance'}</p><button onClick={onSources} className="mt-2 text-left text-3xl font-semibold">{latestBalance === null || latestBalance === undefined ? '—' : money(latestBalance)}</button></div><span className="metric-icon bg-brand-soft text-brand"><WalletCards className="size-4"/></span></div>
       <p className="mt-2 text-[10px] text-muted-foreground">{scope === 'Personal' ? monthData?.estimated ? 'Estimated · incomplete source history' : monthData?.partial ? `Available balance through ${dateLabel(model.data.coverage.latestDate)}` : 'Combined month-end balance' : `Available · ledger ${money(model.data.relationship.ledgerBalanceSgd ?? 0)}`}</p>
-      {scope === 'Personal' ? <><div className="savings-goal-label mt-4"><span>Savings rate</span><span>{savingsRate === null ? 'No income this period' : `${savingsRate}%`}</span></div><div className="savings-gauge mt-2"><div style={{ width: `${Math.max(0, Math.min(savingsRate ?? 0, 100))}%` }}/></div><div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4"><div><p className="eyebrow">YTD saved</p><p className={cn('mt-1 text-xl font-semibold', ytdSaved < 0 && 'text-negative')}>{money(ytdSaved)}</p></div><button onClick={onForecast} className="text-left"><p className="eyebrow">31 Dec balance</p><p className="mt-1 text-xl font-semibold">{money(model.data.metrics.projectedYearEndBalanceSgd)}</p></button></div><button onClick={onForecast} className="recommendation mt-4"><span><strong><Sparkles className="mr-1 inline size-3 text-lime"/>Savings estimator</strong><small>Adjust income and spending assumptions</small></span><ChevronRight className="size-4 shrink-0"/></button></> : <><div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4"><div><p className="eyebrow">{model.data.relationship.userLabel} funding</p><p className="mt-1 text-xl font-semibold">{money(latest.userFunding)}</p></div><div><p className="eyebrow">{model.data.relationship.partnerLabel} / other</p><p className="mt-1 text-xl font-semibold">{money(latest.partnerFunding)}</p></div></div><p className="mt-3 text-[10px] text-muted-foreground">Personal contributions are counted once as transfers to this account.</p></>}
+      {scope === 'Personal' ? <><div className="savings-goal-label mt-4"><span>Savings rate</span><span>{savingsRate === null ? 'No income this period' : `${savingsRate}%`}</span></div><div className="savings-gauge mt-2"><div style={{ width: `${Math.max(0, Math.min(savingsRate ?? 0, 100))}%` }}/></div><div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4"><div><p className="eyebrow">YTD saved</p><p className={cn('mt-1 text-xl font-semibold', ytdSaved < 0 && 'text-negative')}>{money(ytdSaved)}</p></div><button onClick={onForecast} className="text-left"><p className="eyebrow">{monthLabel(model.data.settings.forecast.target_month ?? `${month.slice(0,4)}-12`)} balance</p><p className="mt-1 text-xl font-semibold">{money(model.data.metrics.projectedYearEndBalanceSgd)}</p></button></div><button onClick={onForecast} className="recommendation mt-4"><span><strong><Sparkles className="mr-1 inline size-3 text-lime"/>Savings estimator</strong><small>Adjust income and spending assumptions</small></span><ChevronRight className="size-4 shrink-0"/></button></> : <><div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4"><div><p className="eyebrow">{model.data.relationship.userLabel} funding</p><p className="mt-1 text-xl font-semibold">{money(latest.userFunding)}</p></div><div><p className="eyebrow">{model.data.relationship.partnerLabel} / other</p><p className="mt-1 text-xl font-semibold">{money(latest.partnerFunding)}</p></div></div><p className="mt-3 text-[10px] text-muted-foreground">Personal contributions are counted once as transfers to this account.</p></>}
     </section>
     <section className="category-card">
       <div className="flex items-start justify-between gap-2"><div><p className="eyebrow">Where it went · {periodLabel}</p><h3 className="mt-1 text-base font-semibold">{rankMode === 'Categories' ? 'Ranked spending' : 'Largest purchases'}</h3></div><div className="analysis-switch">{(['Categories', 'Largest'] as const).map(mode => <button key={mode} onClick={() => setRankMode(mode)} className={cn(rankMode === mode && 'analysis-option-active')}>{mode}</button>)}</div></div>
@@ -154,10 +159,11 @@ function groupedCategoryChart(model: FinanceModel, scope: AccountScope) {
   const series = scope === 'Personal' ? model.personal : model.shared;
   const ranked = categoryBreakdown(model, scope, model.monthKeys);
   const total = ranked.reduce((sum, category) => sum + category.value, 0);
-  const main = ranked.filter((category, index) => index < 6 && category.value >= total * .025);
+  const options = model.data.settings.app.chart;
+  const main = ranked.filter((category, index) => index < options.max_categories && category.value >= total * options.minimum_category_share);
   const minor = ranked.filter(category => !main.some(entry => entry.name === category.name));
-  const groups = [...main, ...(minor.length ? [{ name: 'Other', value: 0, previous: 0, color: 'var(--chart-muted)' }] : [])];
-  const rows = series.map(row => ({ label: row.label, month: row.month, partial: row.partial, ...Object.fromEntries(main.map(category => [category.name, row.categories[category.name] ?? 0])), Other: minor.reduce((sum, category) => sum + (row.categories[category.name] ?? 0), 0) }));
+  const groups = [...main, ...(minor.length ? [{ name: options.other_label, value: 0, previous: 0, color: 'var(--chart-muted)' }] : [])];
+  const rows = series.map(row => ({ label: row.label, month: row.month, partial: row.partial, ...Object.fromEntries(main.map(category => [category.name, row.categories[category.name] ?? 0])), [options.other_label]: minor.reduce((sum, category) => sum + (row.categories[category.name] ?? 0), 0) }));
   return { rows, groups };
 }
 
@@ -255,7 +261,8 @@ function Drawer({ open, onClose, title, children }: { open: boolean; onClose: ()
 }
 
 function ForecastPanel({ model }: { model: FinanceModel }) {
-  const completed = model.personal.filter(row => row.month >= '2026-05' && !row.partial).slice(-3);
+  const options = model.data.settings.forecast;
+  const completed = model.personal.filter(row => row.month >= (options.income_average_start_month ?? model.data.settings.analysis.start_date.slice(0,7)) && !row.partial).slice(-options.recent_months);
   const average = (field: 'income' | 'spending') => completed.length ? completed.reduce((sum, row) => sum + row[field], 0) / completed.length : 0;
   const [income, setIncome] = useState(() => average('income'));
   const [spending, setSpending] = useState(() => average('spending'));
@@ -265,14 +272,16 @@ function ForecastPanel({ model }: { model: FinanceModel }) {
   const days = new Date(Date.UTC(Number(currentMonth.slice(0, 4)), Number(currentMonth.slice(5)), 0)).getUTCDate();
   const remainingFraction = Math.max(0, (days - Number(latestDate.slice(8))) / days);
   let balance = model.data.baseline.balanceSgd;
-  const projection = Array.from({ length: 13 - Number(currentMonth.slice(5)) }, (_, index) => {
-    const month = `${currentMonth.slice(0, 4)}-${String(Number(currentMonth.slice(5)) + index).padStart(2, '0')}`;
+  const targetMonth = options.target_month ?? `${currentMonth.slice(0,4)}-12`;
+  const count = Math.max(0,(Number(targetMonth.slice(0,4))-Number(currentMonth.slice(0,4)))*12 + Number(targetMonth.slice(5))-Number(currentMonth.slice(5))+1);
+  const projection = Array.from({ length: count }, (_, index) => {
+    const month = new Date(Date.UTC(Number(currentMonth.slice(0,4)),Number(currentMonth.slice(5))-1+index,1)).toISOString().slice(0,7);
     const projectedIncome = index === 0 ? Math.max(0, income - (current?.income ?? 0)) : income;
     const projectedSpend = index === 0 ? spending * remainingFraction : spending;
     balance += projectedIncome - projectedSpend;
     return { month, label: monthLabel(month), balance, income: projectedIncome, spending: projectedSpend };
   });
-  return <><div className="projection-card mt-5"><p className="eyebrow">Projected personal balance · 31 Dec</p><p className="mt-2 text-4xl font-semibold">{money(balance)}</p><p className="mt-2 text-xs text-muted-foreground">From {money(model.data.baseline.balanceSgd)} available on {dateLabel(latestDate)}</p></div><div className="mt-5 space-y-4"><label className="forecast-input"><span>Monthly net income</span><input aria-label="Forecast monthly income" type="number" min="0" step="50" value={Math.round(income)} onChange={event => setIncome(Number(event.target.value) || 0)}/></label><label className="forecast-input"><span>Monthly net spend</span><input aria-label="Forecast monthly spending" type="number" min="0" step="50" value={Math.round(spending)} onChange={event => setSpending(Number(event.target.value) || 0)}/></label><input aria-label="Adjust monthly spending" className="range" type="range" min="0" max={Math.max(6000, Math.ceil(spending / 100) * 100)} step="50" value={spending} onChange={event => setSpending(Number(event.target.value))}/><Button variant="glass" size="sm" onClick={() => { setIncome(average('income')); setSpending(average('spending')); }}>Reset to recent average</Button></div><div className="forecast-chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={projection} margin={{ left: 0, right: 8 }}><XAxis dataKey="label" tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }} axisLine={false} tickLine={false}/><YAxis width={52} tickFormatter={axisMoney} tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }} axisLine={false} tickLine={false}/><Tooltip content={<ChartTip/>}/><Area dataKey="balance" name="Projected balance" stroke="var(--brand)" fill="var(--brand-soft)" strokeWidth={2}/></AreaChart></ResponsiveContainer></div><p className="text-xs leading-relaxed text-muted-foreground">Defaults use the last three completed working months. Current-month income already received is deducted, and only the remaining days’ spending is projected. Shared-account funds are excluded. Amount bands use the original payment before reimbursements.</p></>;
+  return <><div className="projection-card mt-5"><p className="eyebrow">Projected personal balance · {monthLabel(targetMonth, true)}</p><p className="mt-2 text-4xl font-semibold">{money(balance)}</p><p className="mt-2 text-xs text-muted-foreground">From {money(model.data.baseline.balanceSgd)} available on {dateLabel(latestDate)}</p></div><div className="mt-5 space-y-4"><label className="forecast-input"><span>Monthly net income</span><input aria-label="Forecast monthly income" type="number" min="0" step={options.slider_step} value={Math.round(income)} onChange={event => setIncome(Number(event.target.value) || 0)}/></label><label className="forecast-input"><span>Monthly net spend</span><input aria-label="Forecast monthly spending" type="number" min="0" step={options.slider_step} value={Math.round(spending)} onChange={event => setSpending(Number(event.target.value) || 0)}/></label><input aria-label="Adjust monthly spending" className="range" type="range" min="0" max={Math.max(options.slider_max, Math.ceil(spending / options.slider_step) * options.slider_step)} step={options.slider_step} value={spending} onChange={event => setSpending(Number(event.target.value))}/><Button variant="glass" size="sm" onClick={() => { setIncome(average('income')); setSpending(average('spending')); }}>Reset to recent average</Button></div><div className="forecast-chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={projection} margin={{ left: 0, right: 8 }}><XAxis dataKey="label" tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }} axisLine={false} tickLine={false}/><YAxis width={52} tickFormatter={axisMoney} tick={{ fill: 'var(--muted-foreground)', fontSize: 9 }} axisLine={false} tickLine={false}/><Tooltip content={<ChartTip/>}/><Area dataKey="balance" name="Projected balance" stroke="var(--brand)" fill="var(--brand-soft)" strokeWidth={2}/></AreaChart></ResponsiveContainer></div><p className="text-xs leading-relaxed text-muted-foreground">Defaults use the last {options.recent_months} completed months in your configured averaging period. Current-month income already received is deducted, and only the remaining days’ spending is projected. Shared-account funds are excluded. Amount bands use the original payment before reimbursements.</p></>;
 }
 
 function SourcesPanel({ model, onRefresh }: { model: FinanceModel; onRefresh: () => Promise<void> }) {

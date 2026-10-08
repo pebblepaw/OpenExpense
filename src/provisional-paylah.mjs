@@ -1,4 +1,5 @@
 import { normalisedTransaction } from './ledger.mjs';
+import { categoryName } from './config.mjs';
 
 export function buildProvisionalPaylahRow({ transactions = [], coverage = {} } = {}) {
   const latestDate = coverage.latestDate;
@@ -33,9 +34,9 @@ export function buildProvisionalPaylahRow({ transactions = [], coverage = {} } =
   return {
     ...row,
     roleAuto: 'paylah_pending_wallet',
-    categoryAuto: 'Pending PayLah detail',
+    categoryAuto: categoryName('pending_paylah'),
     role: 'paylah_pending_wallet',
-    category: 'Pending PayLah detail',
+    category: categoryName('pending_paylah'),
     reviewStatus: 'awaiting_statement',
     reviewNote: `Provisional net spending inferred from ${topups.length} DBS/POSB PayLah top-ups; replace when a detailed PayLah statement arrives.`
   };

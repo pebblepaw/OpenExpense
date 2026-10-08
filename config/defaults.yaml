@@ -1,0 +1,375 @@
+# OpenExpense settings. Never add personal identifiers to this tracked defaults file.
+# Copy config/config.yaml.example to config/config.yaml for private local settings.
+# Category IDs are stable; customize names, aliases, colors and rules below.
+version: 1
+app:
+  name: OpenExpense
+  personal_label: Personal
+  locale: en-SG
+  default_category: food
+  chart:
+    max_categories: 6
+    minimum_category_share: 0.025
+    other_label: Other
+analysis:
+  start_date: 2026-01-01
+  end_date: null
+  baseline_date: 2026-07-31
+forecast:
+  income_average_start_month: 2026-05
+  recent_months: 3
+  target_month: null
+  slider_step: 50
+  slider_max: 6000
+workbook: ./master_transactions.xlsx
+merchant_directory: ./config/merchant_directory.csv
+sources:
+  dbs: ./POSB:DBS Bank Statement
+  paylah: ./PayLah
+  revolut: ./Revolut
+source_labels:
+  dbs-csv: DBS/POSB
+  dbs-pdf: DBS/POSB
+  paylah-pdf: PayLah Wallet
+  revolut-csv: Revolut
+assumed_closing_balances:
+  paylah-pdf: 0
+  revolut-csv: 0
+accounts: {}
+account_holder_patterns: []
+revolut_account_patterns: []
+known_income_patterns:
+  - GOVTECH
+  - GOVERNMENT TECHNOLOGY AGENCY
+  - MINDEF
+  - SAF
+income_sources:
+  Salary:
+    - GOVTECH
+    - GOVERNMENT TECHNOLOGY AGENCY
+  Tuition:
+    - TCIMO
+  Army payments:
+    - MINDEF
+    - SAF
+  Interest:
+    - INTEREST EARNED
+income_fallback_label: Other income
+relationship_account:
+  account_id: JOINT_ACCOUNT_ID
+  account_name: Joint Account
+  user_label: You
+  partner_label: Partner
+  other_contributor_label: Partner / other
+  start_date: null
+  personal_funding_account_ids: []
+  partner_funding_account_ids: []
+transfer_matching:
+  max_calendar_days: 3
+  amount_tolerance_sgd: 0.01
+categories:
+  food:
+    name: Food & Dining
+    aliases:
+      - Food & Dining
+    color: var(--chart-1)
+    subcategories: [] # Amount-band names below provide the dropdown options.
+    amount_bands:
+      - min: 50
+        name: Really big meals ($50+)
+      - min: 20
+        name: Big meals ($20–$49.99)
+      - min: 0
+        name: Other meals (<$20)
+  groceries:
+    name: Groceries
+    aliases:
+      - Groceries
+    color: var(--chart-2)
+    subcategories:
+      - Supermarket
+      - Specialty grocery
+      - Produce
+      - Convenience store
+      - Bread
+  transport:
+    name: Transport
+    aliases:
+      - Transport
+    color: var(--chart-3)
+    subcategories:
+      - Public Transport
+      - Ride Hailing
+      - Bike sharing
+      - Transit
+      - Ride-hailing
+    match_rules:
+      - pattern: \b(?:MRT|SMRT|BUS|PUBLIC TRANSPORT|EZ.?LINK|SIMPLYGO)\b
+        name: Transit
+      - pattern: \b(?:RIDE.?HAIL|TAXI|GOJEK|RYDE|UBER)\b
+        name: Ride Hailing
+  shopping:
+    name: Shopping
+    aliases:
+      - Shopping
+    color: var(--chart-4)
+    subcategories: [] # Amount-band names below provide the dropdown options.
+    amount_bands:
+      - min: 50
+        name: Big purchases ($50+)
+      - min: 0
+        name: Other purchases (<$50)
+  entertainment:
+    name: Entertainment
+    aliases:
+      - Entertainment
+    color: var(--chart-5)
+    subcategories:
+      - Digital books
+      - Subscription
+      - Apps and subscriptions
+      - Cinema
+      - Music subscription
+      - Comedy show
+  travel:
+    name: Travel
+    aliases:
+      - Travel
+    color: var(--chart-6)
+    subcategories:
+      - Booking
+      - Airfare
+      - Lodging
+      - Activities
+  bills:
+    name: Bills
+    aliases:
+      - Bills
+    color: oklch(0.7 0.2 345)
+    subcategories:
+      - Mobile Plan
+      - Cloud Subscription
+      - Streaming Subscription
+      - Software Subscription
+      - Software subscription
+      - Mobile
+      - Insurance
+      - Internet
+  gym:
+    name: Gym
+    aliases:
+      - Gym
+    color: oklch(0.7 0.16 220)
+    subcategories:
+      - Fitness & Supplements
+      - Fitness membership
+  education:
+    name: Education & Work
+    aliases:
+      - Education & Work
+    color: oklch(0.75 0.2 55)
+    subcategories:
+      - Digital services
+      - Cloud hosting
+      - Software subscription
+      - Professional subscription
+      - Campus supplies
+      - Campus services
+  healthcare:
+    name: Healthcare
+    aliases:
+      - Healthcare
+    color: oklch(0.7 0.16 165)
+    subcategories:
+      - Medical
+      - Mental health
+  cash:
+    name: Cash
+    aliases:
+      - Cash
+    color: oklch(0.65 0.16 280)
+    subcategories:
+      - Cash withdrawal
+    default_subcategory: Cash withdrawal
+  relationship_transfer:
+    name: Transfer to Relationship Account
+    aliases:
+      - Transfer to Relationship Account
+    color: oklch(0.75 0.15 95)
+    subcategories:
+      - Relationship transfer
+    default_subcategory: Relationship transfer
+  people_transfer:
+    name: Transfers to People
+    aliases:
+      - Transfers to People
+      - Transfer to Friends/Others
+    color: oklch(0.7 0.12 15)
+    subcategories:
+      - Person transfer
+    default_subcategory: Person transfer
+  unclassified_transfer:
+    name: Unclassified Transfers
+    aliases:
+      - Unclassified Transfers
+    color: oklch(0.7 0.11 240)
+    subcategories:
+      - Unclassified transfer
+    default_subcategory: Unclassified transfer
+  pending_paylah:
+    name: Pending PayLah detail
+    aliases:
+      - Pending PayLah detail
+    color: oklch(0.65 0.06 65)
+    subcategories:
+      - Pending detail
+    default_subcategory: Pending detail
+  fees:
+    name: Fees
+    aliases:
+      - Fees
+    color: oklch(0.7 0.1 310)
+    subcategories:
+      - Bank fee
+    default_subcategory: Bank fee
+  uncategorized:
+    name: Uncategorized
+    aliases:
+      - Uncategorized
+    color: var(--chart-muted)
+    subcategories:
+      - Other
+classification_rules:
+  - pattern: \bFOMO PAY\b
+    category: unclassified_transfer
+    role: transfer_to_person
+    review_note: Payment processor; underlying merchant unknown
+  - pattern: \b(?:PROTEIN|CREATINE|GYM|FITNESS|WORKOUT)\b
+    category: gym
+    subcategory: Fitness & Supplements
+    role: expense
+  - pattern: \b(?:MOBILE|TELCO|BROADBAND|INTERNET|UTILITY|ELECTRICITY|INSURANCE)\b
+    category: bills
+    role: expense
+    recurring: true
+demo:
+  income_descriptions:
+    allowance: Parent allowance (demo)
+    salary: Northstar Labs salary (demo)
+    interest: Interest earned (demo)
+    tuition: Weekend tutoring (demo)
+    service: Service allowance (demo)
+  income_labels:
+    allowance: Allowance
+    salary: Salary
+    interest: Interest
+    tuition: Tuition
+    service: Service payments
+  other_contributor_label: Partner / other
+  repayment_recipient: {name: Casey (demo), number: "00000001"}
+  transfer_recipient: {name: Riley (demo), number: "00000002"}
+  year: 2026
+  latestDate: 2026-09-24
+  seed: 42691
+  openingPersonalBalance: 7200
+  salary: 4850
+  allowance: 680
+  monthlyJointContribution: 320
+  partnerJointContribution: 280
+  accounts:
+    - accountId: DEMO-000-000001-0
+      accountName: DBS Savings
+      scope: Personal
+      source: dbs-csv
+      kind: savings
+      balance_share: 0.8
+    - accountId: DEMO-000-000002-0
+      accountName: DBS Spending
+      scope: Personal
+      source: dbs-csv
+      kind: spending
+      balance_share: 0.2
+    - accountId: DEMO-REVOLUT-000003
+      accountName: Revolut
+      scope: Personal
+      source: revolut-csv
+      kind: revolut
+      balance_share: 0
+    - accountId: DEMO-PAYLAH-000004
+      accountName: PayLah Wallet
+      scope: Personal
+      source: paylah-pdf
+      kind: paylah
+      balance_share: 0
+    - accountId: DEMO-JOINT-000005
+      accountName: Relationship Account
+      scope: Shared
+      source: dbs-csv
+      kind: relationship
+      balance_share: 0
+  merchants:
+    - name: Mellow Cafe (demo)
+      category: Food & Dining
+      subcategory: Cafe
+      min: 6
+      max: 36
+    - name: Ember Kitchen (demo)
+      category: Food & Dining
+      subcategory: Restaurant
+      min: 18
+      max: 95
+    - name: Neighbourhood Noodles (demo)
+      category: Food & Dining
+      subcategory: Hawker
+      min: 4
+      max: 14
+    - name: Pantry Market (demo)
+      category: Groceries
+      subcategory: Supermarket
+      min: 16
+      max: 95
+    - name: Metro Ride (demo)
+      category: Transport
+      subcategory: Public Transport
+      min: 2
+      max: 18
+    - name: Sunday Goods (demo)
+      category: Shopping
+      subcategory: Retail
+      min: 12
+      max: 190
+    - name: Prism Cinema (demo)
+      category: Entertainment
+      subcategory: Cinema
+      min: 12
+      max: 42
+    - name: Orbit Mobile (demo)
+      recurring: true
+      category: Bills
+      subcategory: Mobile
+      min: 22
+      max: 35
+    - name: Lift Club (demo)
+      recurring: true
+      category: Gym
+      subcategory: Fitness membership
+      min: 35
+      max: 70
+    - name: Cloud Canvas (demo)
+      category: Education & Work
+      subcategory: Software subscription
+      min: 14
+      max: 68
+    - name: Cedar Clinic (demo)
+      category: Healthcare
+      subcategory: Medical
+      min: 24
+      max: 88
+    - name: Coastline Stay (demo)
+      category: Travel
+      subcategory: Lodging
+      min: 140
+      max: 320
+  user_label: Alex
+  partner_label: Sam
+  salary_start_month: 4
