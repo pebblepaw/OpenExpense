@@ -1,0 +1,45 @@
+# Personal Finance Dashboard Configuration Example
+# Copy this file to config/config.yaml and replace the placeholder values.
+# NEVER commit your real config/config.yaml to version control.
+
+# Your name(s) or patterns that appear on incoming transfers/top-ups to your own accounts
+account_holder_patterns:
+  - "YOUR_NAME"
+
+# Bank account numbers representing your Revolut account (e.g. printed on DBS/POSB statements)
+revolut_account_patterns:
+  - "YOUR_REVOLUT_ACCOUNT_NUMBER"
+
+# Counterparties or names recognized as income (e.g. employer, allowance, government agencies)
+known_income_patterns:
+  - "EMPLOYER_NAME"
+  - "ALLOWANCE_SOURCE"
+  - "GOVTECH"
+  - "MINDEF"
+  - "SAF"
+
+# Optional Categories > Income display groups. Does not change income recognition.
+# Generic salary, tuition, army and interest rules live in income_sources.json.
+income_sources:
+  Allowance:
+    - "ALLOWANCE_SOURCE"
+
+# Relationship / Joint account settings (optional)
+relationship_account:
+  account_id: "JOINT_ACCOUNT_ID"          # e.g. "123-45678-9"
+  account_name: "Joint Account"           # Display label
+  user_label: "You"                       # Label for your contributions (e.g. "You" or your name)
+  partner_label: "Partner"               # Label for partner contributions (e.g. "Partner" or name)
+  personal_funding_account_ids:          # Your personal accounts that fund the joint account
+    - "PERSONAL_ACCOUNT_1_ID"
+    - "PERSONAL_ACCOUNT_2_ID"
+  partner_funding_account_ids:           # Partner or secondary accounts funding the joint account
+    - "PARTNER_ACCOUNT_ID"
+
+# Source directories for statements
+sources:
+  dbs: "./POSB:DBS Bank Statement"
+  paylah: "./PayLah"
+  revolut: "./Revolut"
+
+workbook: "./master_transactions.xlsx"

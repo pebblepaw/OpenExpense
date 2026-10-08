@@ -1,0 +1,13 @@
+PayLah!
+Statement of Account
+              STATEMENT DATE                                 MOBILE NUMBER                   WALLET ACCOUNT
+                  04 Feb 2026                                   6000000000                   1111222233334444
+ DATE           DESCRIPTION                                                                                      AMOUNT(S$)
+ PayLah! Wallet No. 1111222233334444
+ PREVIOUS BALANCE                                                                                                    81.48 CR
+ NEW TRANSACTIONS TEST USER
+ 08 Jan         TEST BAKERY                                                                                             2.00 DB
+                   REF NO:. IPS-100
+ 15 Jan         RECEIVE MONEY FROM TEST FRIEND                                                                          25.60 CR
+                   REF NO:. TF-200
+ BALANCE CARRIED FORWARD                                                                                                105.08 CR

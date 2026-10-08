@@ -1,0 +1,6 @@
+Account Name,"My Account, Joint"
+Account Number,123-456-789
+Current Balance,"1,234.56"
+Transaction Date,Value Date,Description,Debit Amount,Credit Amount,Balance
+03/03/2026,03/03/2026,"PAYNOW TO ""JANE, DOE""",12.34,,1222.22
+04/03/2026,04/03/2026,"SALARY, ACME PTE LTD",,2000.00,3222.22

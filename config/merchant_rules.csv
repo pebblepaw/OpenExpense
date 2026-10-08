@@ -1,0 +1,16 @@
+pattern,category,subcategory,role,recurring
+FAIRPRICE,Groceries,Supermarket,expense,false
+NTUC,Groceries,Supermarket,expense,false
+MCDONALDS,Food & Dining,Fast Food,expense,false
+LUCKIN COFFEE,Food & Dining,Coffee,expense,false
+KOPITIAM,Food & Dining,Hawker & Food Court,expense,false
+TORI Q,Food & Dining,Casual Dining,expense,false
+SMRT,Transport,Public Transport,expense,false
+BUS MRT,Transport,Public Transport,expense,false
+GRAB RIDES,Transport,Ride Hailing,expense,false
+UBER,Transport,Ride Hailing,expense,false
+GOMO MOBILE,Bills,Mobile Plan,expense,true
+GOOGLE CLOUD,Bills,Cloud Subscription,expense,true
+NETFLIX,Bills,Streaming Subscription,expense,true
+CLAUDE,Bills,Software Subscription,expense,true
+ANTHROPIC,Bills,Software Subscription,expense,true

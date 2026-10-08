@@ -1,0 +1,10 @@
+"Account Details For:","My Account 123-456789-0",,,,,,,,,,
+"Statement as at:","29 Aug 2026",,,,,,,,,,
+"",,,,,,,,,,,
+"Currency:","SGD",,,,,,,,,,
+"",,,,,,,,,,,
+"Available Balance:","1,234.56",,,,,,,,,,
+"Ledger Balance:","1,234.56",,,,,,,,,,
+"",,,,,,,,,,,
+"Transaction Date","Value Date","Statement Code","Description","Supplementary Code","Supplementary Code Description","Client Reference","Additional Reference","Status","Currency","Debit Amount","Credit Amount"
+"02 Jan 2026","02 Jan 2026","DBT","Debit Card Transaction","","TEST SHOP SGP","REF-100","","Completed","SGD","2.45",""

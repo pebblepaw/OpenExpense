@@ -1,0 +1,5 @@
+Deposit Account Statement
+Account No.: 555-666-777
+Transaction Date Value Date Description Amount Type Balance
+10/01/2026 10/01/2026 CASH WITHDRAWAL 50.00 DB 900.00
+11/01/2026 11/01/2026 REFUND FROM SHOP 10.00 CR 910.00

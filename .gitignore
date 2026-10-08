@@ -1,0 +1,64 @@
+# Node dependencies
+node_modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.zip
+
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Private Bank Statements & Ingested Ledger Data (CRITICAL: NEVER COMMIT)
+POSB:DBS Bank Statement/
+PayLah/
+Revolut/
+master_transactions.xlsx
+master_transactions.xlsx.*
+*.xlsx
+*.ndjson
+redesign-mobile.png
+
+# User Configuration with Personal Account Details & Credentials
+config/config.yaml
+config/config.yml
+config.yaml
+config.yml
+.env
+.env.local
+.env.*.local
+
+# Tool & Debug Artefacts
+.playwright-cli/
+.superpowers/
+*.log
+frontend/dist/
+frontend/dist-demo/
+public-release/
+.codex-runtime-link
+
+# Private development notes (old Git history stays private)
+PROJECT_PROGRESS.md
+tasks/todo.md
+docs/superpowers/
+docs/interface-audit.md
+docs/personal-finance-dashboard-one-pager.md
+docs/frontend-migration.md
+
+# Additional private exports and credentials
+statements/
+private-data/
+*.pdf
+*.csv
+!config/merchant_rules.csv
+!config/merchant_directory.csv
+!test/fixtures/*.csv
+.env.*
+!.env.example
+!frontend/.env.demo

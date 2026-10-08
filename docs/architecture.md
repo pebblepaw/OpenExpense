@@ -1,0 +1,30 @@
+# OpenExpense architecture
+
+The same React dashboard has two strictly separated data providers.
+
+- **Local:** the Node server parses DBS/POSB CSV/PDF, PayLah PDF, and Revolut CSV; reconciles owned-account movements; applies reusable merchant rules and manual workbook overrides; serves `/api/data`. Browser edits save to the workbook and recalculate metrics immediately.
+- **Public demo:** `config/demo.json` generates fictional transactions from a fixed seed. It does not import server configuration or read source files. `frontend/.env.demo` locks the provider to demo mode; retags and recipient aliases live only in that browser's local storage. Reset clears those demo edits.
+
+`config/categories.json` is the canonical category list. Food and shopping bands use recorded SGD payments before reimbursements. Income is recognized separately; peer receipts/refunds offset net personal spend, and owned-account transfers do not count as spending or income. Relationship-account contributions count once on the personal side, while shared purchases remain on the relationship side.
+
+The master workbook retains stable transaction IDs, Transactions columns A:X, yellow manual columns Q:T, merchant and recipient directories, source coverage and monthly metrics. ExcelJS is the publicly installable workbook engine; a hidden validation sheet supplies native Excel dropdown lists. Old namespace-prefixed exports are normalized in memory on read. Writes replace the destination atomically.
+
+Public builds go to `frontend/dist-demo`; live builds go to `frontend/dist`. The GitHub Pages workflow uploads only `dist-demo`. Never publish a live API payload or workbook—even if identifiers are removed, amounts and transaction patterns remain personal data.
+
+## Release status
+
+- Synthetic provider, local/live switch and public demo lock implemented.
+- Generated banner saved in `docs/assets`; no financial records used in generation.
+- Older personal notes excluded from publication; copied card/phone references in tests replaced with synthetic identifiers.
+- Publish to a fresh repository with new history; keep the original private history private.
+
+See the README for setup, privacy boundaries and supported workflows.
+
+## Publishing from a private checkout
+
+Commit reviewed source changes, then run `node scripts/export-public.mjs /path/to/empty-directory`.
+The exporter copies an allowlist from committed HEAD, excludes personal notes and ignored files,
+and runs the privacy guard. Review the exported files before publication; the guard is not a substitute
+for review. Initialize a fresh repository for the first release. For later updates, copy reviewed source
+into a clone of the public repository and commit there. **Never push the private repository's history
+to the public remote.**

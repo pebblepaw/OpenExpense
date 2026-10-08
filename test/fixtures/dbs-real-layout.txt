@@ -1,0 +1,11 @@
+Details of Your My Account
+1 Jan 2026 to 31 Jan 2026                                                     Account No.: 123-456789-0
+DATE         DESCRIPTION                                                         WITHDRAWAL           DEPOSIT                 BALANCE
+CURRENCY SINGAPORE DOLLAR
+             Balance Brought Forward                                                                                           318.64
+02 Jan       Debit Card Transaction                                                    2.45                                    316.19
+                 TEST SHOP SGP
+                 REF-100
+03 Jan       Advice Funds Transfer                                                                    300.00                    616.19
+                 REF-200
+             Balance Carried Forward                                                                                           616.19

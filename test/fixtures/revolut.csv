@@ -1,0 +1,3 @@
+Type,Completed Date,Description,Debit,Credit,Balance
+CARD_PAYMENT,2026-03-05,"Coffee, Roaster",4.50,,95.50
+CARD_PAYMENT,2026-03-06,Refund,,1.25,96.75

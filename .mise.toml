@@ -1,0 +1,17 @@
+[tasks.money]
+run = "node scripts/money.mjs"
+
+[tasks.refresh]
+run = "node src/refresh.mjs"
+
+[tasks.demo]
+run = "npm run demo --prefix frontend"
+
+[tasks.build-demo]
+run = "npm run build:demo --prefix frontend"
+
+[tasks.test]
+run = "node --test"
+
+[tasks.test-site]
+run = "npm run build --prefix frontend && node --test test/site.e2e.mjs"

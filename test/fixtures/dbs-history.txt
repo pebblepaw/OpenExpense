@@ -1,0 +1,7 @@
+Deposit Account Statement
+Account Number: 123-456-789
+Closing Balance: S$3,222.22
+Transaction Date | Value Date | Description | Debit | Credit | Balance
+15/01/2026 | 15/01/2026 | JANUARY PDF ONLY | 10.00 | | 990.00
+15/02/2026 | 15/02/2026 | FEBRUARY PDF ONLY | | 20.00 | 1010.00
+03/03/2026 | 03/03/2026 | PAYNOW TO JANE DOE | 12.34 | | 997.66

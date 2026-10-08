@@ -1,0 +1,34 @@
+{
+  "name": "openexpense-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build",
+    "build:demo": "tsc --noEmit && vite build --mode demo",
+    "demo": "vite --mode demo --host 127.0.0.1 --port 4174",
+    "preview:demo": "vite preview --mode demo --host 127.0.0.1 --port 4174",
+    "dev": "vite --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.2.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.575.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "recharts": "^2.15.4",
+    "tailwind-merge": "^3.5.0"
+  },
+  "overrides": { "recharts": { "react-is": "^19.2.0" } },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/node": "^22.16.5",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "tailwindcss": "^4.2.1",
+    "tw-animate-css": "^1.3.4",
+    "typescript": "^5.8.3",
+    "vite": "8.1.5"
+  }
+}
