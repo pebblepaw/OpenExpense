@@ -11,11 +11,11 @@ import { Button } from '@/components/ui/button';
 import { TransactionsView } from '@/components/finance/transactions';
 import { CalendarView } from '@/components/finance/calendar';
 import {
-  adaptFinanceData, categoryBreakdown, changePercent, currentDisplaySettings, dateLabel, DEMO_ONLY, expenseRows, incomeBreakdown, incomeRows, incomeSource, isDemoMode, loadFinanceData, setDataMode,
+  adaptFinanceData, categoryBreakdown, changePercent, currentDisplaySettings, dateLabel, DEMO_ONLY, expenseRows, incomeBreakdown, incomeRows, incomeSource, isDemoMode, loadFinanceData,
   money, monthLabel, periodKeys, previousPeriodKeys, refreshFinanceData, saveRecipientAlias, saveTransaction,
   subcategoryBreakdown, totalPeriod,
   type AccountScope, type ApiData, type CategoryInfo, type FinanceModel, type Monthly,
-  type DataMode, type Period, type Transaction, type TransactionPatch,
+  type Period, type Transaction, type TransactionPatch,
 } from '@/lib/finance-data';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +26,6 @@ const axisMoney = (value: number) => Math.abs(value) >= 1000 ? `${value < 0 ? '�
 const timestamp = (value: string) => new Intl.DateTimeFormat(currentDisplaySettings().app.locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Singapore' }).format(new Date(value));
 
 export default function FinanceDashboard() {
-  const [mode, setMode] = useState<DataMode>(isDemoMode() ? 'demo' : 'live');
   const [data, setData] = useState<ApiData | null>(null);
   const [loadError, setLoadError] = useState('');
   const [view, setView] = useState<View>('Overview');
@@ -53,14 +52,9 @@ export default function FinanceDashboard() {
   const onSave = async (id: string, patch: TransactionPatch) => { setData(await saveTransaction(id, patch)); };
   const onRecipientAlias = async (number: string, name: string) => { setData(await saveRecipientAlias(number, name)); };
   const onRefresh = async () => { const next = await refreshFinanceData(); setData(next); };
-  const changeMode = async (nextMode: DataMode) => {
-    setDataMode(nextMode); setMode(nextMode); setFocus(null); setPanel(null); setLoadError('');
-    try { const next = await loadFinanceData(); setData(next); setMonth(next.coverage.latestDate.slice(0, 7)); }
-    catch (error) { setData(null); setLoadError(error instanceof Error ? error.message : 'Could not load your data.'); }
-  };
   const openTransaction = (row: Transaction) => { setScope(row.scope); setFocus(row); setView('Transactions'); };
   const openCategories = (category?: string) => { if (category) setSelectedCategory(category); setView('Categories'); };
-  if (!model) return <main className="app-shell loading-shell"><div className="projection-card"><WalletCards className="size-7 text-brand"/><h1 className="mt-4 text-xl font-semibold">{loadError ? 'Your data could not be loaded' : 'Loading OpenExpense'}</h1><p className="mt-2 text-sm text-muted-foreground">{loadError || 'Reading your ledger…'}</p>{loadError && <Button className="mt-5" onClick={() => void reload()}>Try again</Button>}{loadError && !DEMO_ONLY && <Button className="mt-3" onClick={() => void changeMode('demo')}>Try synthetic demo</Button>}</div></main>;
+  if (!model) return <main className="app-shell loading-shell"><div className="projection-card"><WalletCards className="size-7 text-brand"/><h1 className="mt-4 text-xl font-semibold">{loadError ? 'Your data could not be loaded' : 'Loading OpenExpense'}</h1><p className="mt-2 text-sm text-muted-foreground">{loadError || 'Reading your ledger…'}</p>{loadError && <Button className="mt-5" onClick={() => void reload()}>Try again</Button>}</div></main>;
   const series = scope === 'Personal' ? model.personal : model.shared;
   const activeKeys = periodKeys(month, period, model.monthKeys);
   return <main className="app-shell">
@@ -80,7 +74,7 @@ export default function FinanceDashboard() {
         <Button variant="icon" size="icon" aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun className="size-4"/> : <Moon className="size-4"/>}</Button>
       </div>
     </header>
-    <div className="period-row">{!DEMO_ONLY && <div className="data-mode-control"><div className="analysis-switch" aria-label="Data source">{(['live', 'demo'] as const).map(item => <button key={item} aria-pressed={mode === item} onClick={() => void changeMode(item)} className={cn(mode === item && 'analysis-option-active')}>{item === 'live' ? 'My data' : 'Demo'}</button>)}</div></div>}<MonthRuler keys={model.monthKeys} value={month} onChange={setMonth}/><div className="sync-strip"><span>{scope === 'Personal' ? model.data.settings.app.personal_label : model.data.relationship.accountName} · {month.slice(0, 4)}{mode === 'demo' ? ' · Fictional data' : ''}</span><button onClick={() => setPanel('sources')}>Updated {timestamp(model.data.lastUpdatedAt)} · {model.data.sourceGaps.length} source gaps</button>{series.find(row => row.month === month)?.partial && <span className="partial-note">Partial through {dateLabel(model.data.coverage.latestDate)}</span>}</div></div>
+    <div className="period-row"><MonthRuler keys={model.monthKeys} value={month} onChange={setMonth}/><div className="sync-strip"><span>{scope === 'Personal' ? model.data.settings.app.personal_label : model.data.relationship.accountName} · {month.slice(0, 4)}{DEMO_ONLY ? ' · Fictional data' : ''}</span><button onClick={() => setPanel('sources')}>Updated {timestamp(model.data.lastUpdatedAt)} · {model.data.sourceGaps.length} source gaps</button>{series.find(row => row.month === month)?.partial && <span className="partial-note">Partial through {dateLabel(model.data.coverage.latestDate)}</span>}</div></div>
     <section className="dashboard-stage">
       {view === 'Overview' && <Overview model={model} scope={scope} month={month} period={period} selectedCategory={selectedCategory} onCategories={openCategories} onTransaction={openTransaction} onForecast={() => setPanel('forecast')} onSources={() => setPanel('sources')} onMonthChange={setMonth}/>}
       {view === 'Calendar' && <CalendarView rows={model.transactions} scope={scope} month={month} monthKeys={model.monthKeys} categories={model.categories} onMonthChange={setMonth} onTransaction={openTransaction}/>}

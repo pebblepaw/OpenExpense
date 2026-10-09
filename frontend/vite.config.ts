@@ -19,6 +19,7 @@ const publicYaml = {
 
 export default defineConfig(({ mode }) => ({
   base: mode === 'demo' ? './' : '/',
+  define: { __OPENEXPENSE_DEMO__: JSON.stringify(mode === 'demo') },
   plugins: [publicYaml, react(), tailwindcss()],
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   server: { proxy: { '/api': 'http://127.0.0.1:4173' } },

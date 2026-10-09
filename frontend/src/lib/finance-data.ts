@@ -2,14 +2,9 @@ import { getDemoData, resetDemoData, saveDemoAlias, saveDemoTransaction } from '
 import defaults from '../../../config/defaults.yaml';
 import { publicSettings } from '../../../src/settings.mjs';
 
-export const DEMO_ONLY = import.meta.env.VITE_DATA_MODE === 'demo';
-export type DataMode = 'live' | 'demo';
-let currentDataMode: DataMode = DEMO_ONLY ? 'demo' : 'live';
-export const isDemoMode = () => currentDataMode === 'demo';
-export function setDataMode(mode: DataMode) {
-  if (DEMO_ONLY && mode !== 'demo') throw new Error('This public demo cannot access personal data.');
-  currentDataMode = mode;
-}
+// Fixed by Vite at build time: the local app cannot switch to demo, and Pages cannot switch to live.
+export const DEMO_ONLY = __OPENEXPENSE_DEMO__;
+export const isDemoMode = () => DEMO_ONLY;
 
 export type AccountScope = 'Personal' | 'Shared';
 export type Category = string;
@@ -133,10 +128,10 @@ export function incomeBreakdown(model: FinanceModel, scope: AccountScope, keys: 
     previous: rows.filter(row => incomeSource(row) === name && priorKeys.includes(row.date.slice(0, 7))).reduce((sum, row) => sum + row.amount, 0)
   })).sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
 }
-export async function loadFinanceData(): Promise<ApiData> { return isDemoMode() ? getDemoData() : request('/api/data'); }
-export async function refreshFinanceData(): Promise<ApiData> { return isDemoMode() ? resetDemoData() : request('/api/refresh', { method: 'POST' }); }
-export async function saveTransaction(id: string, patch: TransactionPatch): Promise<ApiData> { return isDemoMode() ? saveDemoTransaction(id, patch) : request(`/api/transactions/${encodeURIComponent(id)}`, { method: 'POST', body: JSON.stringify(patch) }); }
-export async function saveRecipientAlias(number: string, name: string): Promise<ApiData> { return isDemoMode() ? saveDemoAlias(number, name) : request('/api/recipient-aliases', { method: 'POST', body: JSON.stringify({ number, name }) }); }
+export async function loadFinanceData(): Promise<ApiData> { return DEMO_ONLY ? getDemoData() : request('/api/data'); }
+export async function refreshFinanceData(): Promise<ApiData> { return DEMO_ONLY ? resetDemoData() : request('/api/refresh', { method: 'POST' }); }
+export async function saveTransaction(id: string, patch: TransactionPatch): Promise<ApiData> { return DEMO_ONLY ? saveDemoTransaction(id, patch) : request(`/api/transactions/${encodeURIComponent(id)}`, { method: 'POST', body: JSON.stringify(patch) }); }
+export async function saveRecipientAlias(number: string, name: string): Promise<ApiData> { return DEMO_ONLY ? saveDemoAlias(number, name) : request('/api/recipient-aliases', { method: 'POST', body: JSON.stringify({ number, name }) }); }
 async function request(url: string, init?: RequestInit) {
   const response = await fetch(url, { ...init, headers: { 'Content-Type': 'application/json', ...init?.headers } });
   const result = await response.json();

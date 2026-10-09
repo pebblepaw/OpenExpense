@@ -53,7 +53,7 @@ npm start
 # Or: mise run money
 ```
 
-Open [localhost:4173](http://127.0.0.1:4173). The launcher builds the interface, refreshes the workbook and starts the loopback-only API. **My data / Demo** switches providers locally; demo edits never touch your workbook.
+Open [localhost:4173](http://127.0.0.1:4173). The launcher builds the interface and starts the loopback-only API. This app always uses your real local workbook. The separately built public demo always uses fictional data. Neither has a data-source toggle or fallback to the other provider.
 
 Add later exports and click **Refresh statements** in Transactions or Accounts & coverage. To refresh without launching the site, use `npm run refresh` or `mise run refresh`. Browser retags recalculate immediately. External Excel edits are picked up on refresh.
 
