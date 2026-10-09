@@ -83,7 +83,7 @@ test('real-data React views, account filters, drilldowns and durable retags work
   const download = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Export CSV', exact: true }).click();
   assert.match((await download).suggestedFilename(), /transactions.*\.csv/);
-  await page.getByRole('button', { name: 'Relationship account', exact: true }).click();
+  await page.getByRole('button', { name: initial.relationship.accountName, exact: true }).click();
   assert.ok((await page.locator('tbody tr .account-chip').allTextContents()).every(name => name === initial.relationship.accountName));
   await page.getByRole('button', { name: 'Overview', exact: true }).click();
   assert.match(await page.locator('.savings-card').innerText(), /ledger/i);

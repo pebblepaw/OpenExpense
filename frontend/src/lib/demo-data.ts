@@ -3,7 +3,7 @@ import { canonicalCategoryFrom, subcategoriesFrom, publicSettings } from '../../
 import { resolveAutomaticSubcategory } from '../../../src/subcategories.mjs';
 import type { ApiData, TransactionPatch } from './finance-data';
 
-export const DEMO_STORAGE_KEY = 'openexpense-synthetic-edits-v1';
+export const DEMO_STORAGE_KEY = 'openexpense-synthetic-edits-v2';
 type DemoEdits = { transactions: Record<string, TransactionPatch>; aliases: Record<string, string> };
 const round = (value: number) => Math.round(value * 100) / 100;
 const expenseRoles = new Set(['expense', 'transfer_to_person', 'relationship_transfer', 'paylah_pending_wallet']);
@@ -28,7 +28,25 @@ function seedTransactions(config = defaults) {
   for (let month = 1; month <= Number(settings.latestDate.slice(5, 7)); month++) {
     const key = `${settings.year}-${String(month).padStart(2, '0')}`;
     const date = (day: number) => `${key}-${String(day).padStart(2, '0')}`;
-    const lastDay = key === settings.latestDate.slice(0, 7) ? Number(settings.latestDate.slice(8)) : 28;
+    const lastDay = key === settings.latestDate.slice(0, 7) ? Number(settings.latestDate.slice(8)) : new Date(Date.UTC(settings.year, month, 0)).getUTCDate();
+    const activeMerchants = settings.merchants.filter((merchant: any) => !merchant.active_months || merchant.active_months.includes(month));
+    // A shuffled first pass guarantees variety, followed by weighted everyday habits.
+    const pickers = new Map(['personal', 'shared'].map(scope => {
+      const pool = activeMerchants.filter((merchant: any) => !merchant.monthly_day && (merchant[`${scope}_weight`] ?? 1) > 0);
+      if (!pool.length) throw new Error(`Demo has no ${scope} spending merchants for ${key}.`);
+      const firstPass = [...pool];
+      for (let index = firstPass.length - 1; index > 0; index--) {
+        const other = Math.floor(random() * (index + 1));
+        [firstPass[index], firstPass[other]] = [firstPass[other], firstPass[index]];
+      }
+      const totalWeight = pool.reduce((sum: number, merchant: any) => sum + (merchant[`${scope}_weight`] ?? 1), 0);
+      return [scope, () => {
+        if (firstPass.length) return firstPass.shift();
+        let cursor = random() * totalWeight;
+        return pool.find((merchant: any) => (cursor -= merchant[`${scope}_weight`] ?? 1) < 0) ?? pool.at(-1);
+      }] as const;
+    }));
+    const purchase = (account: typeof savings, day: number, merchant: any, scale = 1) => add(account, date(day), merchant.name, -round((merchant.min + random() * (merchant.max - merchant.min)) * scale), 'expense', merchant.category, { subcategoryAuto: merchant.subcategory, recurring: Boolean(merchant.recurring) });
     add(savings, date(1), month < settings.salary_start_month ? settings.income_descriptions.allowance : settings.income_descriptions.salary, month < settings.salary_start_month ? settings.allowance : settings.salary, 'income', null, { incomeSource: month < settings.salary_start_month ? settings.income_labels.allowance : settings.income_labels.salary });
     add(savings, date(2), settings.income_descriptions.interest, 3.2 + random() * 4, 'income', null, { incomeSource: settings.income_labels.interest });
     if (month % 3 === 0) add(spending, date(5), settings.income_descriptions.tuition, 180 + month * 12, 'income', null, { incomeSource: settings.income_labels.tuition });
@@ -42,14 +60,16 @@ function seedTransactions(config = defaults) {
     add(joint, date(4), `${settings.user_label} contribution (demo)`, settings.monthlyJointContribution, 'relationship_contribution', null, { contributionSource: settings.user_label });
     add(joint, date(4), `${settings.partner_label} contribution (demo)`, settings.partnerJointContribution, 'relationship_contribution', null, { contributionSource: settings.other_contributor_label });
     for (let day = 1; day <= lastDay; day++) {
-      const account = [spending, paylah, revolut][Math.floor(random() * 3)];
-      const merchant = settings.merchants[Math.floor(random() * settings.merchants.length)];
-      const amount = round(merchant.min + random() * (merchant.max - merchant.min));
-      add(account, date(day), merchant.name, -amount, 'expense', merchant.category, { subcategoryAuto: merchant.subcategory, recurring: Boolean(merchant.recurring) });
-      if (day % 4 === 0) {
-        const meal = settings.merchants[1];
-        add(joint, date(day), meal.name, -(22 + random() * 35), 'expense', meal.category);
+      for (const scope of ['personal', 'shared'] as const) {
+        const pattern = settings.spending_patterns[scope];
+        if ((day - 1) % pattern.every_days !== 0) continue;
+        const count = pattern.purchases_per_day.min + Math.floor(random() * (pattern.purchases_per_day.max - pattern.purchases_per_day.min + 1));
+        for (let item = 0; item < count; item++) {
+          const account = scope === 'shared' ? joint : [spending, paylah, revolut][Math.floor(random() * 3)];
+          purchase(account, day, pickers.get(scope)!(), pattern.amount_scale);
+        }
       }
+      for (const merchant of activeMerchants.filter((merchant: any) => merchant.monthly_day === day)) purchase(spending, day, merchant);
       if (day % 9 === 0) add(paylah, date(day), `Meal repayment from ${settings.repayment_recipient.name}`, 8 + random() * 15, 'peer_receipt', config.categories.unclassified_transfer.name, { recipientDisplayName: settings.repayment_recipient.name, recipientNumber: settings.repayment_recipient.number });
     }
     if (lastDay >= 12) add(paylah, date(12), `Transfer to ${settings.transfer_recipient.name}`, -14 - random() * 20, 'transfer_to_person', config.categories.people_transfer.name, { recipientDisplayName: settings.transfer_recipient.name, recipientNumber: settings.transfer_recipient.number });

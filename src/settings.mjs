@@ -64,6 +64,15 @@ export function validateSettings(config) {
   if (demo.accounts.some(account => !account.accountId?.startsWith('DEMO-') || !account.accountName || !Number.isFinite(account.balance_share))) fail('demo accounts need fictional DEMO- IDs, names and balance shares');
   if (Math.abs(demo.accounts.filter(account => account.kind !== 'relationship').reduce((sum,account) => sum + account.balance_share,0)-1)>0.000001) fail('personal demo balance shares must sum to 1');
   for (const merchant of demo.merchants) if (!labels.has(merchant.category.toLowerCase()) || !Number.isFinite(merchant.min) || !Number.isFinite(merchant.max) || merchant.min < 0 || merchant.max < merchant.min) fail('demo merchants need a known category and valid amount range');
+  for (const scope of ['personal','shared']) {
+    const pattern = demo.spending_patterns?.[scope];
+    if (!Number.isInteger(pattern?.every_days) || pattern.every_days < 1 || !Number.isFinite(pattern.amount_scale) || pattern.amount_scale <= 0 || !Number.isInteger(pattern.purchases_per_day?.min) || pattern.purchases_per_day.min < 1 || !Number.isInteger(pattern.purchases_per_day.max) || pattern.purchases_per_day.max < pattern.purchases_per_day.min) fail(`demo.spending_patterns.${scope} needs a positive frequency, amount scale and purchase count range`);
+  }
+  for (const merchant of demo.merchants) {
+    for (const scope of ['personal','shared']) if (merchant[`${scope}_weight`] != null && (!Number.isFinite(merchant[`${scope}_weight`]) || merchant[`${scope}_weight`] < 0)) fail('demo merchant weights must be nonnegative');
+    if (merchant.monthly_day != null && (!Number.isInteger(merchant.monthly_day) || merchant.monthly_day < 1 || merchant.monthly_day > 28)) fail('demo monthly_day must be between 1 and 28');
+    if (merchant.active_months && (!Array.isArray(merchant.active_months) || merchant.active_months.some(month=>!Number.isInteger(month)||month<1||month>12))) fail('demo active_months must contain month numbers');
+  }
   return config;
 }
 

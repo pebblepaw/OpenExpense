@@ -59,7 +59,7 @@ test('viewport drawers, clean amounts and Spending / Income category charts', { 
   assert.equal(await page.locator('.transaction-row-focused').count(), 1);
   await page.getByRole('button', { name: 'Categories', exact: true }).click();
   await page.locator('.category-index').getByRole('button', { name: 'Income', exact: true }).click();
-  await page.getByRole('button', { name: 'Relationship account', exact: true }).click();
+  await page.getByRole('button', { name: data.relationship.accountName, exact: true }).click();
   assert.match(await page.locator('.category-index').innerText(), /Account contributions/i);
   assert.ok((await page.locator('.category-index-row strong').allTextContents()).every(name => name.includes('contributions')));
   assert.deepEqual(errors, []);

@@ -15,12 +15,27 @@ test('synthetic Pages site works under a project path, never calls an API, and p
   context.after(() => rm(temporary,{recursive:true,force:true}));
   const fixture = join(temporary,'demo.mjs');
   await build({entryPoints:['frontend/src/lib/demo-data.ts'],bundle:true,platform:'node',format:'esm',outfile:fixture,plugins:[{name:'public-yaml',setup(builder){builder.onLoad({filter:/defaults\.yaml$/},async args=>({contents:`export default ${JSON.stringify(parse(await readFile(args.path,'utf8')))}`,loader:'js'}));}}]});
-  const { buildDemoData } = await import(pathToFileURL(fixture));
+  const { buildDemoData, DEMO_STORAGE_KEY } = await import(pathToFileURL(fixture));
   const data = buildDemoData();
   assert.deepEqual(buildDemoData(),data);
   assert.ok(data.transactions.length > 350);
   assert.ok(data.accounts.every(account => account.accountId.startsWith('DEMO-')));
   assert.ok(data.transactions.every(row => row.id.startsWith('demo-')));
+  assert.equal(data.relationship.accountName,'Relationship');
+  for (const month of data.metrics.months) {
+    assert.ok(Object.values(month.categories).filter(amount=>amount>0).length >= 9,`${month.month} needs a diverse personal mix`);
+    const shared = data.relationship.months.find(row=>row.month===month.month);
+    assert.ok(Object.values(shared.categories).filter(amount=>amount>0).length >= 5,`${month.month} needs a diverse relationship mix`);
+    for (const scope of ['Personal','Shared']) {
+      const accounts = new Set(data.accounts.filter(account=>account.scope===scope).map(account=>account.accountId));
+      const days = new Map();
+      for (const row of data.transactions.filter(row=>accounts.has(row.accountId)&&row.role==='expense'&&row.transactionDate.startsWith(month.month))) {
+        const mix = days.get(row.transactionDate) ?? new Set();
+        mix.add(row.category); days.set(row.transactionDate,mix);
+      }
+      assert.ok([...days.values()].filter(mix=>mix.size>1).length >= 3,`${scope} ${month.month} needs mixed-category days`);
+    }
+  }
   const custom = parse(await readFile('config/defaults.yaml','utf8'));
   custom.app.name = 'YAML-configured dashboard';
   custom.categories.food.name = 'Meals';
@@ -63,16 +78,32 @@ test('synthetic Pages site works under a project path, never calls an API, and p
   const errors=[];page.on('pageerror',error => errors.push(error.message));
   await page.goto(`http://127.0.0.1:${server.address().port}/OpenExpense/`);
   await page.locator('.metric-card').first().waitFor();
-  assert.match(await page.locator('.demo-label').innerText(),/Synthetic demo/);
+  assert.equal(await page.locator('.demo-label,.data-mode-control strong').count(),0);
+  assert.match(await page.locator('.sync-strip').innerText(),/Fictional data/);
   assert.equal(await page.getByRole('button',{name:'My data',exact:true}).count(),0);
+  await page.locator('.month-tick').last().click();
+  await page.locator('.month-ruler').hover();
+  await page.waitForTimeout(350);
+  const bounds = await page.evaluate(()=>({ruler:document.querySelector('.month-ruler').getBoundingClientRect().bottom,sync:document.querySelector('.sync-strip').getBoundingClientRect().bottom,stage:document.querySelector('.dashboard-stage').getBoundingClientRect().top}));
+  assert.ok(bounds.ruler <= bounds.stage && bounds.sync <= bounds.stage,'date ruler and partial-month note must not overlap the dashboard');
   await page.waitForFunction(() => document.querySelectorAll('.flow-chart .recharts-area-curve[d]').length===3);
+  for (const name of ['Personal finances','Relationship']) {
+    await page.getByRole('button',{name,exact:true}).click();
+    await page.getByRole('button',{name:'Calendar',exact:true}).click();
+    const fills=await page.locator('.spending-pie').evaluateAll(items=>items.map(item=>getComputedStyle(item).backgroundImage));
+    assert.ok(new Set(fills).size>=4,`${name} calendar must have different category colours`);
+    assert.ok(fills.every(fill=>fill.startsWith('conic-gradient(')),'calendar pie colours must be valid CSS');
+    await page.getByRole('button',{name:'Categories',exact:true}).click();
+    assert.ok(await page.locator('.category-index-row').count()>=5,`${name} needs several spending categories`);
+  }
+  await page.getByRole('button',{name:'Personal finances',exact:true}).click();
   await page.getByRole('button',{name:'Transactions',exact:true}).click();
   const row=page.locator('tbody tr').filter({has:page.locator('select')}).first();
   const id=(await row.getAttribute('id')).replace('transaction-','');
   const old=await row.locator('select').first().inputValue();
   const next=old==='Shopping' ? 'Food & Dining' : 'Shopping';
   await row.locator('select').first().selectOption(next);
-  await page.waitForFunction(({id,next}) => JSON.parse(localStorage.getItem('openexpense-synthetic-edits-v1') || '{}').transactions?.[id]?.manualCategory===next,{id,next});
+  await page.waitForFunction(({id,next,key}) => JSON.parse(localStorage.getItem(key) || '{}').transactions?.[id]?.manualCategory===next,{id,next,key:DEMO_STORAGE_KEY});
   await page.reload();
   await page.locator('.metric-card').first().waitFor();
   await page.getByRole('button',{name:'Transactions',exact:true}).click();
@@ -80,12 +111,12 @@ test('synthetic Pages site works under a project path, never calls an API, and p
   await page.getByRole('button',{name:'Categories',exact:true}).click();
   await page.locator('.category-index').getByRole('button',{name:'Income',exact:true}).click();
   assert.ok((await page.locator('.category-index-row strong').allTextContents()).includes('Salary'));
-  await page.getByRole('button',{name:'Relationship account',exact:true}).click();
+  await page.getByRole('button',{name:'Relationship',exact:true}).click();
   assert.match(await page.locator('.category-index').innerText(),/Account contributions/i);
   await page.getByRole('button',{name:'Transactions',exact:true}).click();
   await page.getByRole('button',{name:'Import statement',exact:true}).click();
   await page.getByRole('button',{name:'Reset demo data',exact:true}).click();
-  assert.equal(await page.evaluate(() => localStorage.getItem('openexpense-synthetic-edits-v1')),null);
+  assert.equal(await page.evaluate(key => localStorage.getItem(key),DEMO_STORAGE_KEY),null);
   await page.keyboard.press('Escape');
   await page.setViewportSize({width:390,height:844});
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth),390);

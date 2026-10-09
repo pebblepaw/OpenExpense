@@ -276,6 +276,15 @@ demo:
   allowance: 680
   monthlyJointContribution: 320
   partnerJointContribution: 280
+  spending_patterns:
+    personal:
+      every_days: 1
+      purchases_per_day: {min: 1, max: 3}
+      amount_scale: 1
+    shared:
+      every_days: 3
+      purchases_per_day: {min: 2, max: 2}
+      amount_scale: 0.45
   accounts:
     - accountId: DEMO-000-000001-0
       accountName: DBS Savings
@@ -302,70 +311,96 @@ demo:
       kind: paylah
       balance_share: 0
     - accountId: DEMO-JOINT-000005
-      accountName: Relationship Account
+      accountName: Relationship
       scope: Shared
       source: dbs-csv
       kind: relationship
       balance_share: 0
   merchants:
     - name: Mellow Cafe (demo)
+      personal_weight: 6
+      shared_weight: 4
       category: Food & Dining
       subcategory: Cafe
       min: 6
       max: 36
     - name: Ember Kitchen (demo)
+      personal_weight: 3
+      shared_weight: 3
       category: Food & Dining
       subcategory: Restaurant
       min: 18
       max: 95
     - name: Neighbourhood Noodles (demo)
+      personal_weight: 7
+      shared_weight: 4
       category: Food & Dining
       subcategory: Hawker
       min: 4
       max: 14
     - name: Pantry Market (demo)
+      personal_weight: 3
+      shared_weight: 4
       category: Groceries
       subcategory: Supermarket
       min: 16
       max: 95
     - name: Metro Ride (demo)
+      personal_weight: 6
+      shared_weight: 2
       category: Transport
       subcategory: Public Transport
       min: 2
       max: 18
     - name: Sunday Goods (demo)
+      personal_weight: 2
+      shared_weight: 1
       category: Shopping
       subcategory: Retail
       min: 12
       max: 190
     - name: Prism Cinema (demo)
+      personal_weight: 2
+      shared_weight: 2
       category: Entertainment
       subcategory: Cinema
       min: 12
       max: 42
     - name: Orbit Mobile (demo)
+      monthly_day: 12
+      shared_weight: 0
       recurring: true
       category: Bills
       subcategory: Mobile
       min: 22
       max: 35
     - name: Lift Club (demo)
+      monthly_day: 8
+      shared_weight: 0
       recurring: true
       category: Gym
       subcategory: Fitness membership
       min: 35
       max: 70
     - name: Cloud Canvas (demo)
+      monthly_day: 14
+      shared_weight: 0
+      recurring: true
       category: Education & Work
       subcategory: Software subscription
       min: 14
       max: 68
     - name: Cedar Clinic (demo)
+      personal_weight: 1
+      shared_weight: 0
       category: Healthcare
       subcategory: Medical
       min: 24
       max: 88
     - name: Coastline Stay (demo)
+      active_months: [3, 6, 9]
+      personal_weight: 1
+      shared_weight: 1
       category: Travel
       subcategory: Lodging
       min: 140
