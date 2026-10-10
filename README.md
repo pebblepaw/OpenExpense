@@ -1,17 +1,40 @@
-![OpenExpense — Your money. Your data. Your rules.](docs/assets/openexpense-banner.png)
-
 # OpenExpense
 
-[![GitHub Pages Demo](https://img.shields.io/badge/GitHub_Pages-Demo-2563eb?style=flat-square&logo=github&logoColor=white)](https://pebblepaw.github.io/OpenExpense/)
-[![Pages Build](https://img.shields.io/github/actions/workflow/status/pebblepaw/OpenExpense/pages.yml?branch=main&style=flat-square&label=Pages%20build&logo=githubactions&logoColor=white)](https://github.com/pebblepaw/OpenExpense/actions/workflows/pages.yml)
-[![Documentation](https://img.shields.io/badge/Docs-Architecture-8b5cf6?style=flat-square&logo=readthedocs&logoColor=white)](docs/architecture.md)
-[![License MIT](https://img.shields.io/badge/License-MIT-16a34a?style=flat-square)](LICENSE)
+<p align="center">
+  <img width="1600" alt="banner" src="docs/assets/openexpense-banner.png" />
+</p>
+
+<!-- <h1 align="center">MiroWorld</h1> -->
+
+  <p align="center">
+    <a href="https://pebblepaw.github.io/OpenExpense/"><img src="https://img.shields.io/badge/GitHub%20Pages-Demo-0a66c2?logo=github&logoColor=white" alt="GitHub Pages Demo" /></a>
+    <a href="docs/architecture.md"><img src="https://img.shields.io/badge/Docs-Architecture-8b5cf6?style=flat-square&logo=readthedocs&logoColor=white" /></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue.svg" alt="License: AGPL-3.0" /></a></p>
+
 
 A local-first expense dashboard for DBS/POSB, PayLah and Revolut. Turn bank exports into an editable Excel ledger, reconcile account transfers, and see where your money goes.
 
-[Try the live demo](https://pebblepaw.github.io/OpenExpense/) · [Source code](https://github.com/pebblepaw/OpenExpense) · [How it works](docs/architecture.md)
-
 **The hosted demo is entirely fictional.** Accounts, names, balances, earnings and transactions are generated from scratch. Retags stay in your browser. It cannot load your bank files or contact a personal-data API.
+
+<table align="center">
+  <tr>
+    <td colspan="2" align="center">
+      <img src="https://github.com/user-attachments/assets/dda67ebf-48e6-478d-b699-77678e62af87" width="1000"/>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/f0c21e0c-f7e2-4e2e-9a18-1a395e72604e" width="500"/>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/0d7ae06a-ab13-460a-8be1-1d2e04a065bc" width="500"/>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+    </td>
+  </tr>
+</table>
 
 ## What you get
 
