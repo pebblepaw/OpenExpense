@@ -14,7 +14,7 @@ const exact = new Set([
   '.env.example', '.gitignore', '.impeccable.md', '.mise.toml', 'LICENSE', 'README.md',
   'package.json', 'package-lock.json', '.github/workflows/pages.yml',
   'config/defaults.yaml', 'config/config.yaml.example',
-  'config/merchant_rules.csv', 'config/merchant_directory.csv',
+  'config/merchant_rules.csv',
   'docs/architecture.md', 'docs/assets/openexpense-banner.png', 'docs/assets/banner.md'
 ]);
 const trees = ['src/', 'frontend/', 'scripts/', 'skills/', 'test/'];

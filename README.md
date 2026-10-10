@@ -2,6 +2,11 @@
 
 # OpenExpense
 
+[![GitHub Pages Demo](https://img.shields.io/badge/GitHub_Pages-Demo-2563eb?style=flat-square&logo=github&logoColor=white)](https://pebblepaw.github.io/OpenExpense/)
+[![Pages Build](https://img.shields.io/github/actions/workflow/status/pebblepaw/OpenExpense/pages.yml?branch=main&style=flat-square&label=Pages%20build&logo=githubactions&logoColor=white)](https://github.com/pebblepaw/OpenExpense/actions/workflows/pages.yml)
+[![Documentation](https://img.shields.io/badge/Docs-Architecture-8b5cf6?style=flat-square&logo=readthedocs&logoColor=white)](docs/architecture.md)
+[![License MIT](https://img.shields.io/badge/License-MIT-16a34a?style=flat-square)](LICENSE)
+
 A local-first expense dashboard for DBS/POSB, PayLah and Revolut. Turn bank exports into an editable Excel ledger, reconcile account transfers, and see where your money goes.
 
 [Try the live demo](https://pebblepaw.github.io/OpenExpense/) · [Source code](https://github.com/pebblepaw/OpenExpense) · [How it works](docs/architecture.md)
@@ -61,7 +66,8 @@ Add later exports and click **Refresh statements** in Transactions or Accounts &
 
 - `config/config.yaml`: all private/local settings—names, account aliases, categories, subcategories, amount bands, colours, income groups, source paths, transfer matching, balance assumptions and forecasting.
 - `config/defaults.yaml`: the safe public defaults and fictional `demo` settings. Public frontend builds read **only** this file, never your private YAML.
-- `config/merchant_rules.csv` and `config/merchant_directory.csv`: reusable classifications.
+- `config/merchant_rules.csv`: the shared starter classification rules.
+- `config/merchant_directory.csv`: your private, Git-ignored merchant mappings. It is optional; fresh clones start without personal merchant history. The local workbook also retains its Merchant Directory.
 - `skills/update-personal-finances/SKILL.md`: reusable statement-update instructions for a coding agent.
 
 Raw exports and real configuration are ignored by Git. Manual workbook overrides win over automatic tags and remain keyed by stable transaction IDs. Ambiguous merchants are not silently guessed.
@@ -80,7 +86,7 @@ For your fork, enable **Settings → Pages → GitHub Actions** and update the w
 
 The Node API runs only on `127.0.0.1`. Personal processing and workbook saves stay local; there is no transaction-upload service. The interface downloads Google Fonts, so it is not fully offline. Do not expose the local API publicly.
 
-Ignored files can still be added with `git add -f`; check staged changes before sharing. The public release starts with fresh history, synthetic tests and no bank statements, workbook, personal notes or account credentials.
+Ignored files can still be added with `git add -f`; check staged changes before sharing. Personal merchant directories are excluded from exports and rejected by the public privacy guard. Removing a previously tracked directory does not remove older Git history. The public release starts with fresh history, synthetic tests and no bank statements, workbook, personal notes or account credentials.
 
 Statement formats can change. Review source gaps, unclassified transfers and uncertain merchant matches. Historical wallet balances currently assume zero closing PayLah/Revolut balances; incomplete balance history is labelled estimated. Forecasts are scenarios, not guarantees.
 

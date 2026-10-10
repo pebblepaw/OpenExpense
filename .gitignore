@@ -57,8 +57,8 @@ private-data/
 *.pdf
 *.csv
 !config/merchant_rules.csv
-!config/merchant_directory.csv
+# Researched personal merchant history stays local, even though it is configuration.
+config/merchant_directory.csv
 !test/fixtures/*.csv
 .env.*
 !.env.example
-!frontend/.env.demo

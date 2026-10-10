@@ -38,7 +38,7 @@ test('reports source gaps with human-readable account names', async (context) =>
     await mkdir(join(testDirectory, 'config'), { recursive: true });
     await copyFile(join(sourceDirectory, 'test/fixtures/dbs-real-layout.csv'), join(testDirectory, 'POSB:DBS Bank Statement/test.csv'));
     await copyFile(join(sourceDirectory, 'test/fixtures/revolut-real-layout.csv'), join(testDirectory, 'Revolut/revolut.csv'));
-    await copyFile(join(sourceDirectory, 'config/merchant_directory.csv'), join(testDirectory, 'config/merchant_directory.csv'));
+    // Fresh clones have no private merchant directory; the loader must handle that.
   }
 
   process.chdir(testDirectory);

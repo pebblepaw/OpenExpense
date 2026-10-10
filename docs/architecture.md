@@ -13,6 +13,8 @@ The master workbook retains stable transaction IDs, Transactions columns A:X, ye
 
 Public builds go to `frontend/dist-demo`; live builds go to `frontend/dist`. The GitHub Pages workflow uploads only `dist-demo`. Never publish a live API payload or workbook—even if identifiers are removed, amounts and transaction patterns remain personal data.
 
+`config/merchant_directory.csv` is private merchant history: keep it locally, never track or export it. The loader supports its absence in a fresh clone. The public guard rejects any file named `merchant_directory.csv`, and the source exporter excludes it. The workbook Merchant Directory remains local as well. This protects future commits; older history is not rewritten.
+
 ## Frontend preservation
 
 The migration reference is gaze-gold commit `184524b`. Preserve its micro-interactions; ask before changing animation behaviour or visual details. The period ruler retains the original 22px-to-48px expansion, negative offset, easing, label fade and collapse. It shows only available months, quarters or years and shrinks physically to fit the index count. Selecting a quarter/year anchors the dashboard to its latest available month. Space for expansion is reserved above the charts; the redundant metadata/status line is removed. Accounts and source gaps remain accessible through the information button.
