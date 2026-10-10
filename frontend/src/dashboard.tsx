@@ -10,8 +10,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { TransactionsView } from '@/components/finance/transactions';
 import { CalendarView } from '@/components/finance/calendar';
+import { reportingPeriodIndices } from '../../src/reporting-periods.mjs';
 import {
-  adaptFinanceData, categoryBreakdown, changePercent, currentDisplaySettings, dateLabel, DEMO_ONLY, expenseRows, incomeBreakdown, incomeRows, incomeSource, isDemoMode, loadFinanceData,
+  adaptFinanceData, categoryBreakdown, changePercent, dateLabel, expenseRows, incomeBreakdown, incomeRows, incomeSource, isDemoMode, loadFinanceData,
   money, monthLabel, periodKeys, previousPeriodKeys, refreshFinanceData, saveRecipientAlias, saveTransaction,
   subcategoryBreakdown, totalPeriod,
   type AccountScope, type ApiData, type CategoryInfo, type FinanceModel, type Monthly,
@@ -23,7 +24,6 @@ type View = 'Overview' | 'Calendar' | 'Categories' | 'Transactions';
 type Theme = 'dark' | 'light';
 type ChartMode = 'Flow' | 'Balance' | 'Saved' | 'Categories';
 const axisMoney = (value: number) => Math.abs(value) >= 1000 ? `${value < 0 ? '−' : ''}$${(Math.abs(value) / 1000).toFixed(1)}k` : money(value);
-const timestamp = (value: string) => new Intl.DateTimeFormat(currentDisplaySettings().app.locale, { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Singapore' }).format(new Date(value));
 
 export default function FinanceDashboard() {
   const [data, setData] = useState<ApiData | null>(null);
@@ -55,12 +55,11 @@ export default function FinanceDashboard() {
   const openTransaction = (row: Transaction) => { setScope(row.scope); setFocus(row); setView('Transactions'); };
   const openCategories = (category?: string) => { if (category) setSelectedCategory(category); setView('Categories'); };
   if (!model) return <main className="app-shell loading-shell"><div className="projection-card"><WalletCards className="size-7 text-brand"/><h1 className="mt-4 text-xl font-semibold">{loadError ? 'Your data could not be loaded' : 'Loading OpenExpense'}</h1><p className="mt-2 text-sm text-muted-foreground">{loadError || 'Reading your ledger…'}</p>{loadError && <Button className="mt-5" onClick={() => void reload()}>Try again</Button>}</div></main>;
-  const series = scope === 'Personal' ? model.personal : model.shared;
   const activeKeys = periodKeys(month, period, model.monthKeys);
   return <main className="app-shell">
     <header className="topbar">
       <div className="scope-switch" role="group" aria-label="Reporting period">
-        {(['Month', 'Quarter', 'Year'] as Period[]).map(item => <button key={item} onClick={() => setPeriod(item)} aria-pressed={period === item} className={cn('scope-option', period === item && 'scope-option-active')}>{item}</button>)}
+        {(['Month', 'Quarter', 'Year'] as Period[]).map(item => <button key={item} onClick={() => { setPeriod(item); const selected = reportingPeriodIndices(model.monthKeys,item).find(index=>index.months.includes(month)); if (selected) setMonth(selected.month); }} aria-pressed={period === item} className={cn('scope-option', period === item && 'scope-option-active')}>{item}</button>)}
       </div>
       <nav className="view-tabs" aria-label="Dashboard views">
         {(['Overview', 'Calendar', 'Categories', 'Transactions'] as View[]).map(item => <button key={item} onClick={() => { if (item === 'Transactions') setFocus(null); setView(item); }} aria-pressed={view === item} className={cn('view-tab', view === item && 'view-tab-active')}>{item}</button>)}
@@ -74,7 +73,7 @@ export default function FinanceDashboard() {
         <Button variant="icon" size="icon" aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun className="size-4"/> : <Moon className="size-4"/>}</Button>
       </div>
     </header>
-    <div className="period-row"><MonthRuler keys={model.monthKeys} value={month} onChange={setMonth}/><div className="sync-strip"><span>{scope === 'Personal' ? model.data.settings.app.personal_label : model.data.relationship.accountName} · {month.slice(0, 4)}{DEMO_ONLY ? ' · Fictional data' : ''}</span><button onClick={() => setPanel('sources')}>Updated {timestamp(model.data.lastUpdatedAt)} · {model.data.sourceGaps.length} source gaps</button>{series.find(row => row.month === month)?.partial && <span className="partial-note">Partial through {dateLabel(model.data.coverage.latestDate)}</span>}</div></div>
+    <div className="period-row"><PeriodRuler keys={model.monthKeys} period={period} value={month} onChange={setMonth}/></div>
     <section className="dashboard-stage">
       {view === 'Overview' && <Overview model={model} scope={scope} month={month} period={period} selectedCategory={selectedCategory} onCategories={openCategories} onTransaction={openTransaction} onForecast={() => setPanel('forecast')} onSources={() => setPanel('sources')} onMonthChange={setMonth}/>}
       {view === 'Calendar' && <CalendarView rows={model.transactions} scope={scope} month={month} monthKeys={model.monthKeys} categories={model.categories} onMonthChange={setMonth} onTransaction={openTransaction}/>}
@@ -86,8 +85,10 @@ export default function FinanceDashboard() {
   </main>;
 }
 
-function MonthRuler({ keys, value, onChange }: { keys: string[]; value: string; onChange: (month: string) => void }) {
-  return <div className="month-ruler" aria-label="Reporting month"><div className="month-ruler-track" style={{ gridTemplateColumns: `repeat(${keys.length},minmax(36px,1fr))` }}>{keys.map((month, index) => <button key={month} onClick={event => { onChange(month); event.currentTarget.blur(); }} className={cn('month-tick', month === value && 'month-tick-active')} aria-label={monthLabel(month, true)} aria-pressed={month === value}><i style={{ height: `${index % 3 === 0 ? 13 : index % 2 === 0 ? 9 : 6}px` }}/><span>{monthLabel(month)}</span></button>)}</div></div>;
+function PeriodRuler({ keys, period, value, onChange }: { keys: string[]; period: Period; value: string; onChange: (month: string) => void }) {
+  const indices = reportingPeriodIndices(keys,period);
+  const width = Math.min(620,indices.length*68+28);
+  return <div className="month-ruler" aria-label={`Reporting ${period.toLowerCase()}`} style={{width:`min(${width}px,100%)`}}><div className="month-ruler-track" style={{ gridTemplateColumns: `repeat(${Math.max(1,indices.length)},minmax(36px,1fr))`, minWidth: `${indices.length*36}px` }}>{indices.map((item, index) => { const selected = item.months.includes(value); return <button key={item.id} onClick={event => { onChange(item.month); event.currentTarget.blur(); }} className={cn('month-tick', selected && 'month-tick-active')} aria-label={period === 'Month' ? monthLabel(item.month,true) : item.id.replace('-',' ')} aria-pressed={selected}><i style={{ height: `${index % 3 === 0 ? 13 : index % 2 === 0 ? 9 : 6}px` }}/><span>{period === 'Month' ? monthLabel(item.month) : item.label}</span></button>; })}</div></div>;
 }
 
 function Stat({ label, value, previous, priorAvailable, inverse = false, accent, comparison }: { label: string; value: number; previous: number; priorAvailable: boolean; inverse?: boolean; accent: string; comparison: string }) {

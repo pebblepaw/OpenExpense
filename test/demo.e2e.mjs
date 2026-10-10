@@ -9,6 +9,7 @@ import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright';
 import { build } from 'esbuild';
 import { parse } from 'yaml';
+import { checkPeriodControls } from './period-controls.mjs';
 
 test('synthetic Pages site works under a project path, never calls an API, and persists only demo edits', async context => {
   const temporary = await mkdtemp(join(tmpdir(),'openexpense-demo-test-'));
@@ -79,7 +80,6 @@ test('synthetic Pages site works under a project path, never calls an API, and p
   await page.goto(`http://127.0.0.1:${server.address().port}/OpenExpense/`);
   await page.locator('.metric-card').first().waitFor();
   assert.equal(await page.locator('.demo-label,.data-mode-control strong').count(),0);
-  assert.match(await page.locator('.sync-strip').innerText(),/Fictional data/);
   assert.equal(await page.getByRole('button',{name:'My data',exact:true}).count(),0);
   assert.equal(await page.getByRole('button',{name:'Demo',exact:true}).count(),0);
   await page.mouse.move(0,0);
@@ -87,10 +87,11 @@ test('synthetic Pages site works under a project path, never calls an API, and p
   await page.locator('.month-tick').last().click();
   await page.locator('.month-ruler').hover();
   await page.waitForFunction(()=>document.querySelector('.month-ruler').getBoundingClientRect().height===48);
-  const bounds = await page.evaluate(()=>({ruler:document.querySelector('.month-ruler').getBoundingClientRect().bottom,sync:document.querySelector('.sync-strip').getBoundingClientRect().bottom,stage:document.querySelector('.dashboard-stage').getBoundingClientRect().top}));
-  assert.ok(bounds.ruler <= bounds.stage && bounds.sync <= bounds.stage,'date ruler and partial-month note must not overlap the dashboard');
+  const bounds = await page.evaluate(()=>({ruler:document.querySelector('.month-ruler').getBoundingClientRect().bottom,stage:document.querySelector('.dashboard-stage').getBoundingClientRect().top}));
+  assert.ok(bounds.ruler <= bounds.stage,'date ruler must not overlap the dashboard');
   await page.mouse.move(0,0);
   await page.waitForFunction(()=>document.querySelector('.month-ruler').getBoundingClientRect().height===22);
+  await checkPeriodControls(page,data.metrics.months.map(row=>row.month));
   await page.waitForFunction(() => document.querySelectorAll('.flow-chart .recharts-area-curve[d]').length===3);
   for (const name of ['Personal finances','Relationship']) {
     await page.getByRole('button',{name,exact:true}).click();

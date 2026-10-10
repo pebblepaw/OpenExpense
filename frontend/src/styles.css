@@ -276,6 +276,7 @@
 .metric-icon { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 10px; }
 .metric-change-chip { display:inline-flex; min-width:44px; height:27px; align-items:center; justify-content:center; border-radius:9px; padding:0 7px; font-size:10px; font-weight:700; }
 .chart-header { display: flex; align-items: flex-start; justify-content: space-between; }
+.chart-header .analysis-switch { width:fit-content; flex:none; }
 .legend-dot { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; }
 .savings-goal-label { display:flex; justify-content:space-between; color:var(--muted-foreground); font-size:9px; }.savings-gauge, .budget-track { position:relative; height: 7px; border-radius: 999px; background: var(--accent); }
 .savings-gauge > div, .budget-track > div { height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--brand), var(--lime)); transition: width .5s ease; }
@@ -353,12 +354,7 @@ td select { min-width: 100px; border-radius: 8px; padding: 6px 8px; background: 
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { scroll-behavior:auto!important; animation-duration:.01ms!important; animation-iteration-count:1!important; transition-duration:.01ms!important; } }
 
 /* Real-ledger integration: retain the imported motion, accommodate variable data. */
-.period-row { display:grid; grid-template-columns:minmax(110px,1fr) minmax(0,620px) minmax(110px,1fr); grid-template-rows:36px 20px; gap:4px 0; height:64px; max-width:1540px; margin:auto; }
-.period-row > .month-ruler { grid-column:2; grid-row:1; align-self:start; }
-.sync-strip { grid-column:1/-1; grid-row:2; display:flex; justify-content:center; align-items:center; gap:10px; height:20px; color:var(--muted-foreground); font-size:9px; }
-.sync-strip button { border:0; padding:0; background:transparent; color:inherit; }
-.sync-strip button:hover { color:var(--foreground); }
-.partial-note { color:var(--coral); }
+.period-row { height:64px; max-width:1540px; margin:auto; padding-top:8px; }
 .dashboard-stage { height:calc(100svh - 162px); }
 .overview-grid { grid-template-rows:minmax(270px,.7fr) minmax(240px,1fr); }
 .ranked-list { flex:1; min-height:0; overflow:auto; margin-top:12px; }
@@ -406,7 +402,6 @@ select option { color:var(--foreground); background:var(--popover); }
 }
 @media (max-width:720px) {
   .period-row { display:flex; height:auto; padding-bottom:10px; }
-  .sync-strip { height:auto; flex-wrap:wrap; gap:4px 10px; }
   .dashboard-stage { height:auto; }
   .chart-header { flex-wrap:wrap; }
   .filterbar { overflow:visible; }

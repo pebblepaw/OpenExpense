@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import { checkPeriodControls } from './period-controls.mjs';
 
 // Read-only local check: never refresh, retag or write the user's ledger.
 test('local build always uses real data, has no demo fallback, and preserves the ruler animation', {skip: !process.env.MONEY_SITE_URL}, async context => {
@@ -17,16 +18,16 @@ test('local build always uses real data, has no demo fallback, and preserves the
   await page.locator('.metric-card').first().waitFor();
   assert.equal(await page.getByRole('button',{name:'Demo',exact:true}).count(),0);
   assert.equal(await page.getByRole('button',{name:'My data',exact:true}).count(),0);
-  assert.ok(!(await page.locator('.sync-strip').innerText()).includes('Fictional data'));
   await page.mouse.move(0,0);
   await page.waitForFunction(()=>document.querySelector('.month-ruler').getBoundingClientRect().height===22);
   await page.locator('.month-ruler').hover();
   await page.waitForFunction(()=>document.querySelector('.month-ruler').getBoundingClientRect().height===48);
   await page.locator('.month-tick').last().click();
-  const bounds = await page.evaluate(()=>({ruler:document.querySelector('.month-ruler').getBoundingClientRect().bottom,sync:document.querySelector('.sync-strip').getBoundingClientRect().bottom,stage:document.querySelector('.dashboard-stage').getBoundingClientRect().top}));
-  assert.ok(bounds.ruler<=bounds.stage && bounds.sync<=bounds.stage);
+  const bounds = await page.evaluate(()=>({ruler:document.querySelector('.month-ruler').getBoundingClientRect().bottom,stage:document.querySelector('.dashboard-stage').getBoundingClientRect().top}));
+  assert.ok(bounds.ruler<=bounds.stage);
   await page.mouse.move(0,0);
   await page.waitForFunction(()=>document.querySelector('.month-ruler').getBoundingClientRect().height===22);
+  await checkPeriodControls(page,data.metrics.months.map(row=>row.month));
   await page.route('**/api/data',route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:'Local API unavailable for this read-only test'})}));
   await page.reload();
   await page.getByRole('button',{name:'Try again',exact:true}).waitFor();

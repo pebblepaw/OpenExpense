@@ -15,7 +15,7 @@ Public builds go to `frontend/dist-demo`; live builds go to `frontend/dist`. The
 
 ## Frontend preservation
 
-The migration reference is gaze-gold commit `184524b`. Preserve its micro-interactions; ask before changing animation behaviour or visual details. The month ruler retains the original 22px-to-48px expansion, negative offset, easing, label fade and collapse. Space for the expanded state is reserved above the real-ledger metadata so it cannot overlap the charts.
+The migration reference is gaze-gold commit `184524b`. Preserve its micro-interactions; ask before changing animation behaviour or visual details. The period ruler retains the original 22px-to-48px expansion, negative offset, easing, label fade and collapse. It shows only available months, quarters or years and shrinks physically to fit the index count. Selecting a quarter/year anchors the dashboard to its latest available month. Space for expansion is reserved above the charts; the redundant metadata/status line is removed. Accounts and source gaps remain accessible through the information button.
 
 Other CSS animation timings match the imported design. Transaction drawers render in a viewport portal to fix off-screen placement, retaining the original slide timing. The integration added real-data chart modes, filters and editable rows. A few chart hover-marker fills and category-chart cursor styles use Recharts defaults instead of gaze-gold's explicit colours; these differences have not been changed in this restoration pass.
 
