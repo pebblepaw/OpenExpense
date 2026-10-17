@@ -14,8 +14,6 @@
 
 A local-first expense dashboard for DBS/POSB, PayLah and Revolut. Turn bank exports into an editable Excel ledger, reconcile account transfers, and see where your money goes.
 
-**The hosted demo is entirely fictional.** Accounts, names, balances, earnings and transactions are generated from scratch. Retags stay in your browser. It cannot load your bank files or contact a personal-data API.
-
 <table align="center">
   <tr>
     <td colspan="2" align="center">
@@ -44,8 +42,6 @@ A local-first expense dashboard for DBS/POSB, PayLah and Revolut. Turn bank expo
 - An optional relationship account: contributions count once in personal spending; shared purchases stay separate.
 - Reusable merchant mappings, source-gap warnings and a December savings estimator.
 - A master workbook with an editable ledger, merchant directory, recipient directory and monthly metrics.
-
-**Net personal spend = eligible outflows − peer repayments/refunds.** Owned-account movements are excluded. Category charts show gross purchases, with repayment offsets separate. Food/shopping size bands describe the original payment, not one person's share.
 
 ## Try it without bank data
 
@@ -98,20 +94,6 @@ Raw exports and real configuration are ignored by Git. Manual workbook overrides
 After editing local YAML, click **Refresh statements**: the API reloads settings, rebuilds the ledger and updates the charts/dropdowns without rebuilding the frontend. Keep category IDs and aliases stable when changing names. To add a category, give it a new ID, name, aliases, colour and subcategory list. Amount bands are inclusive lower bounds, in descending order ending at zero. A small override-only template is also available in `config/config.yaml.example`.
 
 Statement parsers currently support **SGD**, not currency conversion. Locale controls display formatting only. Changes to public demo defaults require a new demo build/deployment.
-
-## GitHub Pages
-
-The workflow builds `frontend/dist-demo` and uploads **only** that static directory. It never runs the data pipeline. Public builds are locked to demo mode; the local build goes to a different directory.
-
-For your fork, enable **Settings → Pages → GitHub Actions** and update the workflow's deployment repository condition. Relative asset URLs support project Pages paths.
-
-## Privacy and limitations
-
-The Node API runs only on `127.0.0.1`. Personal processing and workbook saves stay local; there is no transaction-upload service. The interface downloads Google Fonts, so it is not fully offline. Do not expose the local API publicly.
-
-Ignored files can still be added with `git add -f`; check staged changes before sharing. Personal merchant directories are excluded from exports and rejected by the public privacy guard. Removing a previously tracked directory does not remove older Git history. The public release starts with fresh history, synthetic tests and no bank statements, workbook, personal notes or account credentials.
-
-Statement formats can change. Review source gaps, unclassified transfers and uncertain merchant matches. Historical wallet balances currently assume zero closing PayLah/Revolut balances; incomplete balance history is labelled estimated. Forecasts are scenarios, not guarantees.
 
 ## Development
 
